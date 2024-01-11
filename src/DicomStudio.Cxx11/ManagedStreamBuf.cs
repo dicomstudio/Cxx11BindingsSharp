@@ -1,65 +1,125 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
+using Microsoft.Win32.SafeHandles;
 
 namespace DicomStudio.Cxx11
 {
     /// <summary>
-    /// Buffered stream wrapper.
+    /// SafeHandle for a C++ streambuf.
     /// </summary>
-    public sealed class ManagedStreamBuf /*: Stream*/
+    public sealed class StreamBufHandle : SafeHandleZeroOrMinusOneIsInvalid
     {
-        private readonly Stream _stream;
-        private readonly ManagedStreamBufInternal _managedStreamBufInternal;
-
         /// <summary>
-        /// Buffered stream wrapper.
+        /// default constructor
         /// </summary>
-        /// <param name="stream"></param>
-        public ManagedStreamBuf(Stream stream)
+        public StreamBufHandle() : base(ownsHandle: true)
         {
-            _stream = stream;
-            _managedStreamBufInternal = new ManagedStreamBufInternal(Read, Write);
         }
 
-        private int Read(byte[] buffer, int count)
+        // It is important to store a reference to the delegates to prevent them from being garbage collected before _handle is released.
+        // https://stackoverflow.com/questions/49466509/delegate-on-instance-method-passed-by-p-invoke
+        internal NativeLibrary.ReadDelegate Read { get; set; }
+        internal NativeLibrary.WriteDelegate Write { get; set; }
+
+        /// <summary>
+        /// release the handle
+        /// </summary>
+        /// <returns>true</returns>
+        protected override bool ReleaseHandle()
         {
-            try
+            NativeLibrary.cxx11_managed_streambuf_delete(handle);
+            return true;
+        }
+    }
+
+    /// <summary>
+    /// Managed streambuf for C++.
+    /// </summary>
+    internal sealed class ManagedStreamBuf : IDisposable
+    {
+        // System.IO.Stream expects an input byte[] to read into,
+        // since we do not want to go the `unsafe` road, create one here:
+        // this also define the buffering (aka `setvbuf`) implicitly:
+        // https://stackoverflow.com/questions/1862982/c-sharp-filestream-optimal-buffer-size-for-writing-large-files
+        // System.IO.Stream uses this as default:
+        // private const int DefaultCopyBufferSize = 81920;
+
+        private readonly Func<byte[], int, int> _readFunction;
+        private readonly Func<byte[], int, int> _writeFunction;
+        private readonly byte[] _buffer;
+        private readonly StreamBufHandle _handle;
+
+        /// <summary>
+        /// Default constructor.
+        /// </summary>
+        /// <param name="readFunction">function to fill buffer</param>
+        /// <param name="writeFunction">function to flush buffer</param>
+        /// <param name="buffering">size of buffering</param>
+        public ManagedStreamBuf(Func<byte[], int, int> readFunction, Func<byte[], int, int> writeFunction,
+            int buffering = 3)
+        {
+            _readFunction = readFunction;
+            _writeFunction = writeFunction;
+            _buffer = new byte[buffering];
+            _handle = NativeLibrary.managed_streambuf_create(Read, Write, _buffer);
+
+            if (_handle.IsInvalid)
+                throw new ArgumentException("Invalid parameters");
+        }
+
+        private int Read()
+        {
+            return _readFunction(_buffer, _buffer.Length);
+        }
+
+        private int Write(int count)
+        {
+            return _writeFunction(_buffer, count);
+        }
+
+        public void CopyTo(StreamBufHandle destination)
+        {
+            var ret = NativeLibrary.cxx11_managed_streambuf_copy_to(_handle, destination);
+            if (ret < 0)
             {
-                return _stream.Read(buffer, 0, count);
-            }
-            catch
-            {
-                // https://www.mono-project.com/docs/advanced/pinvoke/#runtime-exception-propagation
-                // https://github.com/dotnet/runtime/issues/4756
-                return -1;
+                throw new IOException("CopyTo failure");
             }
         }
 
-        private int Write(byte[] buffer, int count)
+        public void ReadInto(byte[] buffer)
         {
-            try
+            var ret = NativeLibrary.cxx11_managed_streambuf_read_into(_handle, buffer, buffer.Length);
+            if (ret < 0)
             {
-                _stream.Write(buffer, 0, count);
-                return count;
+                throw new IOException("ReadInto failure");
             }
-            catch
+        }
+
+        public void WriteInto(byte[] buffer)
+        {
+            var ret = NativeLibrary.cxx11_managed_streambuf_write_into(_handle, buffer, buffer.Length);
+            if (ret < 0)
             {
-                return -1;
+                throw new IOException("WriteInto failure");
             }
         }
 
         /// <summary>
-        /// Return the std::streambuf* handle.
+        /// Implicit conversion to StreamBufHandle.
         /// </summary>
         /// <param name="managedStreamBuf"></param>
         /// <returns></returns>
         public static implicit operator StreamBufHandle(ManagedStreamBuf managedStreamBuf)
         {
-            return managedStreamBuf._managedStreamBufInternal;
+            return managedStreamBuf._handle;
         }
 
-        public void CopyTo(ManagedStreamBuf destination)
+        /// <summary>
+        /// Dispose implementation
+        /// </summary>
+        public void Dispose()
         {
-            _managedStreamBufInternal.CopyTo(destination._managedStreamBufInternal);
+            _handle.Dispose();
         }
     }
 }
