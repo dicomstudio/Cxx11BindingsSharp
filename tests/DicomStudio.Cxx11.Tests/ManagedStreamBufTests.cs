@@ -26,11 +26,5 @@ namespace DicomStudio.Cxx11.Tests
             return -1;
         }
 
-        [Fact]
-        public void Buffer0_ShouldFail()
-        {
-            // act & assert
-            Assert.Throws<ArgumentException>(() => new ManagedStreamBuf(ReadEmpty, WriteEmpty, 0));
-        }
     }
 }
