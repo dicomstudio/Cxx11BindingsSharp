@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Text;
 using Xunit;
@@ -73,23 +73,26 @@ namespace DicomStudio.Cxx11.Tests
         }
 
         [Fact]
-        public void Length_ReturnsUnderlyingLength2()
+        public void TestSize_ReturnsSize()
         {
             var ms = new MemoryStream(new byte[42]);
             var wrap = new ManagedStreamBufShim(ms);
             var ret = NativeLibrary.cxx11_managed_streambuf_test_size(wrap);
             Assert.Equal(42, ret);
         }
+
         [Fact]
-        public void Length_ReturnsUnderlyingLength4()
+        public void Length_ReturnsUnderlyingFileLength()
         {
-            var fs = File.OpenWrite("dest2.txt");
+            var path = "dest.txt";
+            File.Delete(path);
+            var fs = File.OpenWrite(path);
             var wrap = new ManagedStreamBufShim(fs);
             var data = Encoding.UTF8.GetBytes("abcd");
-            var ret = NativeLibrary.cxx11_managed_streambuf_write_into(wrap, data, data.Length);
+            wrap.Write(data, 0, data.Length);
             wrap.Flush();
-            Assert.Equal(data.Length, ret);
+            long length = new System.IO.FileInfo(path).Length;
+            Assert.Equal(data.Length, length);
         }
-
     }
 }
