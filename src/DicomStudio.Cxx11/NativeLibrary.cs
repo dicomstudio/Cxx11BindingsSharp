@@ -29,9 +29,6 @@ namespace DicomStudio.Cxx11
         internal static extern void cxx11_managed_streambuf_delete(IntPtr handle);
 
         [DllImport("Cxx11Sharp", CallingConvention = CallingConvention.Cdecl)]
-        internal static extern int cxx11_managed_streambuf_copy_to(StreamBufHandle src, StreamBufHandle dst);
-
-        [DllImport("Cxx11Sharp", CallingConvention = CallingConvention.Cdecl)]
         internal static extern int cxx11_managed_streambuf_read_into(StreamBufHandle src, byte[] buffer, int count);
 
         [DllImport("Cxx11Sharp", CallingConvention = CallingConvention.Cdecl)]

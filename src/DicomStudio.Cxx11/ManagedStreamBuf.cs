@@ -77,15 +77,6 @@ namespace DicomStudio.Cxx11
             return _writeFunction(_buffer, count);
         }
 
-        public void CopyTo(StreamBufHandle destination)
-        {
-            var ret = NativeLibrary.cxx11_managed_streambuf_copy_to(_handle, destination);
-            if (ret < 0)
-            {
-                throw new IOException("CopyTo failure");
-            }
-        }
-
         public void ReadInto(byte[] buffer)
         {
             var ret = NativeLibrary.cxx11_managed_streambuf_read_into(_handle, buffer, buffer.Length);

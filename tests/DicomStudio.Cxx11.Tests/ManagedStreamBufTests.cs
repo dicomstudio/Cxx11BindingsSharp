@@ -32,16 +32,5 @@ namespace DicomStudio.Cxx11.Tests
             // act & assert
             Assert.Throws<ArgumentException>(() => new ManagedStreamBuf(ReadEmpty, WriteEmpty, 0));
         }
-
-        [Fact]
-        public void ReadWriteError_ShouldFail()
-        {
-            //arrange
-            var sut1 = new ManagedStreamBuf(ReadError, WriteError);
-            var sut2 = new ManagedStreamBuf(ReadError, WriteError);
-
-            // act & assert
-            Assert.Throws<IOException>(() => sut1.CopyTo(sut2));
-        }
     }
 }
