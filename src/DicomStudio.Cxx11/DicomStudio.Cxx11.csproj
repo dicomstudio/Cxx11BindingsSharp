@@ -1,30 +1,52 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFrameworks>net6.0</TargetFrameworks>
-    <Platforms>AnyCPU;x64;x86</Platforms>
-    <Nullable>enable</Nullable>
-    <PackageReadmeFile>..\..\README.md</PackageReadmeFile>
+    <PropertyGroup>
+        <TargetFrameworks>net6.0</TargetFrameworks>
+        <Platforms>AnyCPU;x64;x86</Platforms>
+        <Nullable>enable</Nullable>
+        <PackageReadmeFile>..\..\README.md</PackageReadmeFile>
+    </PropertyGroup>
+
+    <!-- Dump version for clarity -->
+    <Target Name="TestVersion" AfterTargets="build">
+        <Message Text="RuntimeIdentifier=>$(RuntimeIdentifier)" Importance="high"/>
+        <Message Text="OS=>$(OS)" Importance="high"/>
+    </Target>
+
+    <PropertyGroup Condition="'$(RuntimeIdentifier)' == 'win-x64'">
+        <DefineConstants>WINDOWS</DefineConstants>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(OS)' == 'Windows_NT'">
+        <DefineConstants>WINDOWS</DefineConstants>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(RuntimeIdentifier)' == 'linux-x64'">
+        <DefineConstants>LINUX</DefineConstants>
+    </PropertyGroup>
+
+  <PropertyGroup Condition="'$(OS)' != 'Windows_NT'">
+    <DefineConstants>LINUX</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
-  </ItemGroup>
+        <None Include="..\..\README.md" Pack="true" PackagePath="\"/>
+    </ItemGroup>
 
-  <ItemGroup>
-    <!-- https://stackoverflow.com/questions/43412140/csproj-copy-files-depending-on-operating-system -->
-    <ProjectReference Include="..\..\native\Cxx11Sharp.vcxproj" Condition="$([MSBuild]::IsOSPlatform('Windows'))">
-      <!-- https://stackoverflow.com/questions/5107694/how-do-i-add-a-reference-to-an-unmanaged-c-project-called-by-a-c-sharp-project -->
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-      <OutputItemType>Content</OutputItemType>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </ProjectReference>
-  </ItemGroup>
+    <ItemGroup>
+        <!-- https://stackoverflow.com/questions/43412140/csproj-copy-files-depending-on-operating-system -->
+        <ProjectReference Include="..\..\native\Cxx11Sharp.vcxproj" Condition="$([MSBuild]::IsOSPlatform('Windows'))">
+            <!-- https://stackoverflow.com/questions/5107694/how-do-i-add-a-reference-to-an-unmanaged-c-project-called-by-a-c-sharp-project -->
+            <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+            <OutputItemType>Content</OutputItemType>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </ProjectReference>
+    </ItemGroup>
 
-  <ItemGroup>
-    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
-      <_Parameter1>$(AssemblyName).Tests</_Parameter1>
-    </AssemblyAttribute>
-  </ItemGroup>
+    <ItemGroup>
+        <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+            <_Parameter1>$(AssemblyName).Tests</_Parameter1>
+        </AssemblyAttribute>
+    </ItemGroup>
 
 </Project>

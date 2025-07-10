@@ -1,4 +1,5 @@
-﻿using System;
+using System;
+using System.IO;
 using System.Runtime.InteropServices;
 
 namespace DicomStudio.Cxx11
@@ -52,6 +53,58 @@ namespace DicomStudio.Cxx11
 
         [DllImport("Cxx11Sharp", CallingConvention = CallingConvention.Cdecl)]
         internal static extern long cxx11_managed_streambuf_test_size(StreamBufHandle src);
+
+        #endregion
+
+        #region std::filebuf
+
+        [DllImport("Cxx11Sharp", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Unicode)]
+        internal static extern StdFileBufHandle cxx11_filebuf_create1(
+            [MarshalAs(UnmanagedType.LPUTF8Str)] string path, FileMode fileMode, FileAccess fileAccess,
+            FileShare fileShare);
+
+        [DllImport("Cxx11Sharp", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Unicode)]
+        internal static extern StdFileBufHandle cxx11_filebuf_create2(
+            [MarshalAs(UnmanagedType.LPWStr)] string path, FileMode fileMode, FileAccess fileAccess,
+            FileShare fileShare);
+
+        [DllImport("Cxx11Sharp", CallingConvention = CallingConvention.Cdecl)]
+        internal static extern void cxx11_filebuf_delete(IntPtr handle);
+
+        [DllImport("Cxx11Sharp", CallingConvention = CallingConvention.Cdecl)]
+        internal static extern int cxx11_filebuf_read(StdFileBufHandle handle, byte[] buffer, int bufferLength,
+            int offset, int count);
+
+        [DllImport("Cxx11Sharp", CallingConvention = CallingConvention.Cdecl)]
+        internal static extern int cxx11_filebuf_write(StdFileBufHandle handle, byte[] buffer, int bufferLength,
+            int offset, int count);
+
+        [DllImport("Cxx11Sharp", CallingConvention = CallingConvention.Cdecl)]
+        internal static extern long cxx11_filebuf_seek(StdFileBufHandle handle, long offset, SeekOrigin origin);
+
+        [DllImport("Cxx11Sharp", CallingConvention = CallingConvention.Cdecl)]
+        internal static extern int cxx11_filebuf_flush(StdFileBufHandle handle);
+
+        [DllImport("Cxx11Sharp", CallingConvention = CallingConvention.Cdecl)]
+        internal static extern long cxx11_filebuf_get_length(StdFileBufHandle handle);
+
+        [DllImport("Cxx11Sharp", CallingConvention = CallingConvention.Cdecl)]
+        internal static extern int cxx11_filebuf_set_length(StdFileBufHandle handle, long value);
+
+        [DllImport("Cxx11Sharp", CallingConvention = CallingConvention.Cdecl)]
+        internal static extern long cxx11_filebuf_get_position(StdFileBufHandle handle);
+
+        [DllImport("Cxx11Sharp", CallingConvention = CallingConvention.Cdecl)]
+        internal static extern int cxx11_filebuf_set_position(StdFileBufHandle handle, long position);
+
+        [DllImport("Cxx11Sharp", CallingConvention = CallingConvention.Cdecl)]
+        internal static extern int cxx11_filebuf_can_read(StdFileBufHandle handle);
+
+        [DllImport("Cxx11Sharp", CallingConvention = CallingConvention.Cdecl)]
+        internal static extern int cxx11_filebuf_can_write(StdFileBufHandle handle);
+
+        [DllImport("Cxx11Sharp", CallingConvention = CallingConvention.Cdecl)]
+        internal static extern int cxx11_filebuf_can_seek(StdFileBufHandle handle);
 
         #endregion
     }
