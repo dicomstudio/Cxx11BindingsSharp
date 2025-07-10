@@ -1,0 +1,20 @@
+# Copyright (c) Team DicomStudio.
+# SPDX-License-Identifier: MIT
+
+root = true
+
+# Default settings
+[*]
+charset = utf-8
+indent_style = space
+trim_trailing_whitespace = true
+
+[*.md]
+trim_trailing_whitespace = false
+insert_final_newline = true
+
+[*.{h,cs,cxx}]
+insert_final_newline = true
+
+[CMakeLists.txt]
+indent_size = 2
