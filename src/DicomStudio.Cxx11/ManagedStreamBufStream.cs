@@ -14,10 +14,10 @@ namespace DicomStudio.Cxx11
         /// Buffered stream wrapper.
         /// </summary>
         /// <param name="stream"></param>
-        public ManagedStreamBufStream(Stream stream)
+        public ManagedStreamBufStream(Stream? stream)
         {
-            _stream = stream;
-            _managedStreamBuf = new ManagedStreamBuf(Read, Write);
+            _stream = stream ?? throw new System.ArgumentNullException(nameof(stream));
+            _managedStreamBuf = new ManagedStreamBuf(Read, Write, FlushImpl, Seek);
         }
 
         private int Read(byte[] buffer, int count)
@@ -47,6 +47,32 @@ namespace DicomStudio.Cxx11
             }
         }
 
+        private long Seek(long offset, int origin)
+        {
+            try
+            {
+                var ret = _stream.Seek(offset, (SeekOrigin) origin);
+                return ret;
+            }
+            catch
+            {
+                return -1;
+            }
+        }
+
+        private int FlushImpl()
+        {
+            try
+            {
+                _stream.Flush();
+                return 0;
+            }
+            catch
+            {
+                return -1;
+            }
+        }
+
         /// <summary>
         /// Return the std::streambuf* handle.
         /// </summary>
@@ -57,50 +83,47 @@ namespace DicomStudio.Cxx11
             return managedStreamBufStream._managedStreamBuf;
         }
 
-        public void ReadInto(byte[] buffer)
-        {
-            _managedStreamBuf.ReadInto(buffer);
-        }
-
-        public void WriteInto(byte[] buffer)
-        {
-            _managedStreamBuf.WriteInto(buffer);
-        }
-
         public override void Flush()
         {
-            throw new System.NotImplementedException();
+            var ret = NativeLibrary.cxx11_managed_streambuf_flush(_managedStreamBuf);
+            if (ret < 0) throw new IOException("flush");
         }
 
         public override int Read(byte[] buffer, int offset, int count)
         {
             var tmp = new byte[count];
-            this.ReadInto(tmp);
+            _managedStreamBuf.ReadInto(tmp);
             tmp.CopyTo(buffer, offset);
             return count;
-        }
-
-        public override long Seek(long offset, SeekOrigin origin)
-        {
-            throw new System.NotImplementedException();
-        }
-
-        public override void SetLength(long value)
-        {
-            throw new System.NotImplementedException();
         }
 
         public override void Write(byte[] buffer, int offset, int count)
         {
             var tmp = new byte[count];
-            WriteInto(tmp);
+            _managedStreamBuf.WriteInto(tmp);
             tmp.CopyTo(buffer, offset);
         }
 
-        public override bool CanRead { get; }
-        public override bool CanSeek { get; }
-        public override bool CanWrite { get; }
-        public override long Length { get; }
-        public override long Position { get; set; }
+        public override long Seek(long offset, SeekOrigin origin)
+        {
+            return _stream.Seek(offset, origin);
+        }
+
+        public override void SetLength(long value)
+        {
+            _stream.SetLength(value);
+        }
+
+
+        public override bool CanRead => _stream.CanRead;
+        public override bool CanSeek => _stream.CanSeek;
+        public override bool CanWrite => _stream.CanWrite;
+        public override long Length => _stream.Length;
+
+        public override long Position
+        {
+            get => _stream.Position;
+            set => _stream.Position = value;
+        }
     }
 }

@@ -20,6 +20,8 @@ namespace DicomStudio.Cxx11
         // https://stackoverflow.com/questions/49466509/delegate-on-instance-method-passed-by-p-invoke
         internal NativeLibrary.ReadDelegate Read { get; set; }
         internal NativeLibrary.WriteDelegate Write { get; set; }
+        internal NativeLibrary.FlushDelegate Flush { get; set; }
+        internal NativeLibrary.SeekDelegate Seek { get; set; }
 
         /// <summary>
         /// release the handle
@@ -54,14 +56,17 @@ namespace DicomStudio.Cxx11
         /// </summary>
         /// <param name="readFunction">function to fill buffer</param>
         /// <param name="writeFunction">function to flush buffer</param>
+        /// <param name="flushFunction">function to flush buffer</param>
+        /// <param name="seekFunction">function to flush buffer</param>
         /// <param name="buffering">size of buffering</param>
         public ManagedStreamBuf(Func<byte[], int, int> readFunction, Func<byte[], int, int> writeFunction,
-            int buffering = 3)
+            Func<int> flushFunction, Func<long, int, long> seekFunction,
+            int buffering = 4096 /*FileStream.DefaultBufferSize*/)
         {
             _readFunction = readFunction;
             _writeFunction = writeFunction;
             _buffer = new byte[buffering];
-            _handle = NativeLibrary.managed_streambuf_create(Read, Write, _buffer);
+            _handle = NativeLibrary.managed_streambuf_create(Read, Write, flushFunction, seekFunction, _buffer);
 
             if (_handle.IsInvalid)
                 throw new ArgumentException("Invalid parameters");
@@ -77,6 +82,11 @@ namespace DicomStudio.Cxx11
             return _writeFunction(_buffer, count);
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="buffer"></param>
+        /// <exception cref="IOException"></exception>
         public void ReadInto(byte[] buffer)
         {
             var ret = NativeLibrary.cxx11_managed_streambuf_read_into(_handle, buffer, buffer.Length);
@@ -86,6 +96,11 @@ namespace DicomStudio.Cxx11
             }
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="buffer"></param>
+        /// <exception cref="IOException"></exception>
         public void WriteInto(byte[] buffer)
         {
             var ret = NativeLibrary.cxx11_managed_streambuf_write_into(_handle, buffer, buffer.Length);
