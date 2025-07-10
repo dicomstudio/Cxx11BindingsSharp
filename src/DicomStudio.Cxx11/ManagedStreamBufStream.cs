@@ -57,12 +57,6 @@ namespace DicomStudio.Cxx11
             return managedStreamBufStream._managedStreamBuf;
         }
 
-        // FIXME
-        public void CopyTo(ManagedStreamBufStream destination)
-        {
-            _managedStreamBuf.CopyTo(destination._managedStreamBuf);
-        }
-
         public void ReadInto(byte[] buffer)
         {
             _managedStreamBuf.ReadInto(buffer);

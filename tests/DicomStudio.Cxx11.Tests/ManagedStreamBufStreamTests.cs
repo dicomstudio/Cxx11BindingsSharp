@@ -7,21 +7,6 @@ namespace DicomStudio.Cxx11.Tests
     public class ManagedStreamBufStreamTests
     {
         [Fact]
-        public void CopyToTest()
-        {
-            var bytes = Encoding.ASCII.GetBytes("BufferedStreamWrapperTests");
-            var src = new MemoryStream();
-            src.Write(bytes);
-            src.Position = 0;
-            var dst = new MemoryStream();
-            var srcWrap = new ManagedStreamBufStream(src);
-            var dstWrap = new ManagedStreamBufStream(dst);
-            srcWrap.CopyTo(dstWrap);
-
-            Assert.Equal(bytes, dst.ToArray());
-        }
-
-        [Fact]
         public void ReadIntoTest()
         {
             var bytes = Encoding.ASCII.GetBytes("BufferedStreamWrapperTests");
