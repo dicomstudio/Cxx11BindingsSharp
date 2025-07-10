@@ -19,7 +19,10 @@ namespace DicomStudio.Cxx11
         {
             var fillPtr = Marshal.GetFunctionPointerForDelegate(read);
             var flushPtr = Marshal.GetFunctionPointerForDelegate(write);
-            return create_managed_streambuf(fillPtr, flushPtr, buffer, buffer.Length);
+            var ret = create_managed_streambuf(fillPtr, flushPtr, buffer, buffer.Length);
+            ret.Read = read;
+            ret.Write = write;
+            return ret;
         }
 
         [DllImport("Cxx11Sharp", CallingConvention = CallingConvention.Cdecl)]
