@@ -49,10 +49,23 @@ namespace DicomStudio.Cxx11
         internal static extern int cxx11_managed_streambuf_write_into(StreamBufHandle dst, byte[] buffer, int count);
 
         [DllImport("Cxx11Sharp", CallingConvention = CallingConvention.Cdecl)]
+        internal static extern long
+            cxx11_managed_streambuf_seek(StreamBufHandle handle, long offset, SeekOrigin origin);
+
+        [DllImport("Cxx11Sharp", CallingConvention = CallingConvention.Cdecl)]
         internal static extern int cxx11_managed_streambuf_flush(StreamBufHandle dst);
 
         [DllImport("Cxx11Sharp", CallingConvention = CallingConvention.Cdecl)]
-        internal static extern long cxx11_managed_streambuf_test_size(StreamBufHandle src);
+        internal static extern long cxx11_managed_streambuf_get_length(StreamBufHandle src);
+
+        [DllImport("Cxx11Sharp", CallingConvention = CallingConvention.Cdecl)]
+        internal static extern int cxx11_managed_streambuf_set_length(StreamBufHandle handle, long value);
+
+        [DllImport("Cxx11Sharp", CallingConvention = CallingConvention.Cdecl)]
+        internal static extern long cxx11_managed_streambuf_get_position(StreamBufHandle handle);
+
+        [DllImport("Cxx11Sharp", CallingConvention = CallingConvention.Cdecl)]
+        internal static extern int cxx11_managed_streambuf_set_position(StreamBufHandle handle, long position);
 
         #endregion
 

@@ -77,7 +77,7 @@ namespace DicomStudio.Cxx11.Tests
         {
             var ms = new MemoryStream(new byte[42]);
             var wrap = new ManagedStreamBufShim(ms);
-            var ret = NativeLibrary.cxx11_managed_streambuf_test_size(wrap);
+            var ret = NativeLibrary.cxx11_managed_streambuf_get_length(wrap);
             Assert.Equal(42, ret);
         }
 
