@@ -7,12 +7,12 @@ namespace DicomStudio.Cxx11
     /// <summary>
     /// SafeHandle for a C++ streambuf.
     /// </summary>
-    public sealed class StdFileBufHandle : SafeHandleZeroOrMinusOneIsInvalid
+    public sealed class Cxx11FileBufHandle : SafeHandleZeroOrMinusOneIsInvalid
     {
         /// <summary>
         /// default constructor
         /// </summary>
-        public StdFileBufHandle() : base(ownsHandle: true)
+        public Cxx11FileBufHandle() : base(ownsHandle: true)
         {
         }
 
@@ -30,43 +30,43 @@ namespace DicomStudio.Cxx11
     /// <summary>
     /// Managed streambuf for C++.
     /// </summary>
-    internal sealed class StdFileBufStream : Stream, IDisposable
+    internal sealed class Cxx11FileBufShim : Stream, IDisposable
     {
         private const int DefaultBufferSize = 4096;
         private const FileShare DefaultShare = FileShare.Read;
         private const bool DefaultIsAsync = false;
 
-        private readonly StdFileBufHandle _handle;
-        public StdFileBufStream(string path, FileMode mode)
+        private readonly Cxx11FileBufHandle _handle;
+        public Cxx11FileBufShim(string path, FileMode mode)
             : this(path, mode, mode == FileMode.Append ? FileAccess.Write : FileAccess.ReadWrite, DefaultShare, DefaultBufferSize, DefaultIsAsync)
         {
         }
 
-        public StdFileBufStream(string path, FileMode mode, FileAccess access)
+        public Cxx11FileBufShim(string path, FileMode mode, FileAccess access)
             : this(path, mode, access, DefaultShare, DefaultBufferSize, DefaultIsAsync)
         {
         }
 
-        public StdFileBufStream(string path, FileMode mode, FileAccess access, FileShare share)
+        public Cxx11FileBufShim(string path, FileMode mode, FileAccess access, FileShare share)
             : this(path, mode, access, share, DefaultBufferSize, DefaultIsAsync)
         {
         }
 
-        public StdFileBufStream(string path, FileMode mode, FileAccess access, FileShare share, int bufferSize)
+        public Cxx11FileBufShim(string path, FileMode mode, FileAccess access, FileShare share, int bufferSize)
             : this(path, mode, access, share, bufferSize, DefaultIsAsync)
         {
         }
 
-        public StdFileBufStream(string path, FileMode mode, FileAccess access, FileShare share, int bufferSize, bool useAsync)
+        public Cxx11FileBufShim(string path, FileMode mode, FileAccess access, FileShare share, int bufferSize, bool useAsync)
             : this(path, mode, access, share, bufferSize, useAsync ? FileOptions.Asynchronous : FileOptions.None)
         {
         }
 
-        public StdFileBufStream(string path, FileMode mode, FileAccess access, FileShare share, int bufferSize, FileOptions options)
+        public Cxx11FileBufShim(string path, FileMode mode, FileAccess access, FileShare share, int bufferSize, FileOptions options)
             : this(path, mode, access, share, bufferSize, options, 0)
         {
         }
-        private StdFileBufStream(string path, FileMode mode, FileAccess access, FileShare share, int bufferSize, FileOptions options, long preallocationSize)
+        private Cxx11FileBufShim(string path, FileMode mode, FileAccess access, FileShare share, int bufferSize, FileOptions options, long preallocationSize)
         {
 #if WINDOWS
             _handle = NativeLibrary.cxx11_filebuf_create2(path, mode, access, share);
@@ -81,14 +81,14 @@ namespace DicomStudio.Cxx11
             throw new ArgumentException("Invalid parameters");
         }
 
-        public static StdFileBufStream OpenRead(string path)
+        public static Cxx11FileBufShim OpenRead(string path)
         {
-            return new StdFileBufStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+            return new Cxx11FileBufShim(path, FileMode.Open, FileAccess.Read, FileShare.Read);
         }
 
-        public static StdFileBufStream OpenWrite(string path)
+        public static Cxx11FileBufShim OpenWrite(string path)
         {
-            return new StdFileBufStream(path, FileMode.OpenOrCreate, FileAccess.Write, FileShare.None);
+            return new Cxx11FileBufShim(path, FileMode.OpenOrCreate, FileAccess.Write, FileShare.None);
         }
 
         /// <summary>

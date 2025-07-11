@@ -5,10 +5,10 @@ using Xunit;
 
 namespace DicomStudio.Cxx11.Tests
 {
-    public class StdFileBufStreamTests
+    public class Cxx11FileBufShimTests
     {
         private const string TestText = "The quick brown fox jumps over the lazy dog";
-        private const string FileName = "StdFileBufStreamTestFile.txt";
+        private const string FileName = "Cxx11FileBufShimTestFile.txt";
 
         private void CreateTestFile(string? content = null)
         {
@@ -19,7 +19,7 @@ namespace DicomStudio.Cxx11.Tests
         public void Ctor_FileName_ReadMode()
         {
             CreateTestFile();
-            using (var sfs = new StdFileBufStream(FileName, FileMode.Open, FileAccess.Read))
+            using (var sfs = new Cxx11FileBufShim(FileName, FileMode.Open, FileAccess.Read))
             {
                 Assert.True(sfs.CanRead);
                 Assert.False(sfs.CanWrite);
@@ -30,7 +30,7 @@ namespace DicomStudio.Cxx11.Tests
         [Fact]
         public void Ctor_FileName_WriteMode()
         {
-            using (var sfs = new StdFileBufStream(FileName, FileMode.Create, FileAccess.Write))
+            using (var sfs = new Cxx11FileBufShim(FileName, FileMode.Create, FileAccess.Write))
             {
                 Assert.False(sfs.CanRead);
                 Assert.True(sfs.CanWrite);
@@ -41,7 +41,7 @@ namespace DicomStudio.Cxx11.Tests
         [Fact]
         public void Ctor_FileName_ReadWriteMode()
         {
-            using (var sfs = new StdFileBufStream(FileName, FileMode.OpenOrCreate, FileAccess.ReadWrite))
+            using (var sfs = new Cxx11FileBufShim(FileName, FileMode.OpenOrCreate, FileAccess.ReadWrite))
             {
                 Assert.True(sfs.CanRead);
                 Assert.True(sfs.CanWrite);
@@ -53,7 +53,7 @@ namespace DicomStudio.Cxx11.Tests
         public void Read_AtEndOfFile_ShouldReturnZero()
         {
             CreateTestFile();
-            using (var sfs = StdFileBufStream.OpenRead(FileName))
+            using (var sfs = Cxx11FileBufShim.OpenRead(FileName))
             {
                 sfs.Seek(0, SeekOrigin.End);
                 var buffer = new byte[10];
@@ -66,13 +66,13 @@ namespace DicomStudio.Cxx11.Tests
         public void Write_ThenReadBack_ShouldMatch()
         {
             var bytes = Encoding.ASCII.GetBytes(TestText);
-            using (var sfs = StdFileBufStream.OpenWrite("sfs_rw.txt"))
+            using (var sfs = Cxx11FileBufShim.OpenWrite("sfs_rw.txt"))
             {
                 sfs.Write(bytes, 0, bytes.Length);
                 sfs.Flush();
             }
 
-            using (var sfs = StdFileBufStream.OpenRead("sfs_rw.txt"))
+            using (var sfs = Cxx11FileBufShim.OpenRead("sfs_rw.txt"))
             {
                 var buffer = new byte[bytes.Length];
                 int read = sfs.Read(buffer, 0, buffer.Length);
@@ -85,7 +85,7 @@ namespace DicomStudio.Cxx11.Tests
         public void ZeroLengthFile_ShouldHaveZeroLength()
         {
             CreateTestFile(string.Empty);
-            using (var sfs = StdFileBufStream.OpenRead(FileName))
+            using (var sfs = Cxx11FileBufShim.OpenRead(FileName))
             {
                 Assert.Equal(0, sfs.Length);
             }
@@ -95,7 +95,7 @@ namespace DicomStudio.Cxx11.Tests
         public void Seek_BeyondEnd_ShouldNotThrow()
         {
             CreateTestFile();
-            using (var sfs = StdFileBufStream.OpenRead(FileName))
+            using (var sfs = Cxx11FileBufShim.OpenRead(FileName))
             {
                 long beyond = sfs.Length + 100;
                 long pos = sfs.Seek(beyond, SeekOrigin.Begin);
@@ -107,7 +107,7 @@ namespace DicomStudio.Cxx11.Tests
         public void Read_AfterDispose_ShouldThrow()
         {
             CreateTestFile();
-            var sfs = StdFileBufStream.OpenRead(FileName);
+            var sfs = Cxx11FileBufShim.OpenRead(FileName);
             sfs.Dispose();
             Assert.Throws<ObjectDisposedException>(() => sfs.ReadByte());
         }
@@ -115,14 +115,14 @@ namespace DicomStudio.Cxx11.Tests
         [Fact]
         public void OpenNonExistentFile_ShouldThrow()
         {
-            Assert.Throws<FileNotFoundException>(() => StdFileBufStream.OpenRead("does_not_exist.txt"));
+            Assert.Throws<FileNotFoundException>(() => Cxx11FileBufShim.OpenRead("does_not_exist.txt"));
         }
 
         [Fact]
         public void CanRead_ShouldBeTrue_ForReadStream()
         {
             CreateTestFile();
-            using (var sfs = StdFileBufStream.OpenRead(FileName))
+            using (var sfs = Cxx11FileBufShim.OpenRead(FileName))
             {
                 Assert.True(sfs.CanRead);
                 Assert.False(sfs.CanWrite);
@@ -133,7 +133,7 @@ namespace DicomStudio.Cxx11.Tests
         [Fact]
         public void CanWrite_ShouldBeTrue_ForWriteStream()
         {
-            using (var sfs = StdFileBufStream.OpenWrite("sfs_canwrite.txt"))
+            using (var sfs = Cxx11FileBufShim.OpenWrite("sfs_canwrite.txt"))
             {
                 Assert.False(sfs.CanRead);
                 Assert.True(sfs.CanWrite);
@@ -145,12 +145,12 @@ namespace DicomStudio.Cxx11.Tests
         public void CanSeek_ShouldBeTrue_ForAllStreams()
         {
             CreateTestFile();
-            using (var sfs = StdFileBufStream.OpenRead(FileName))
+            using (var sfs = Cxx11FileBufShim.OpenRead(FileName))
             {
                 Assert.True(sfs.CanSeek);
             }
 
-            using (var sfs = StdFileBufStream.OpenWrite("sfs_canseek.txt"))
+            using (var sfs = Cxx11FileBufShim.OpenWrite("sfs_canseek.txt"))
             {
                 Assert.True(sfs.CanSeek);
             }
@@ -163,7 +163,7 @@ namespace DicomStudio.Cxx11.Tests
             var originalBytes = File.ReadAllBytes(FileName);
 
             // Truncate
-            using (var sfs = StdFileBufStream.OpenWrite(FileName))
+            using (var sfs = Cxx11FileBufShim.OpenWrite(FileName))
             {
                 sfs.SetLength(10);
                 Assert.Equal(10, sfs.Length);
@@ -174,7 +174,7 @@ namespace DicomStudio.Cxx11.Tests
             Assert.Equal(originalBytes[..10], truncated);
 
             // Extend
-            using (var sfs = StdFileBufStream.OpenWrite(FileName))
+            using (var sfs = Cxx11FileBufShim.OpenWrite(FileName))
             {
                 sfs.SetLength(20);
                 Assert.Equal(20, sfs.Length);
@@ -190,7 +190,7 @@ namespace DicomStudio.Cxx11.Tests
         public void Seek_SetPosition_ReadsExpectedByte()
         {
             CreateTestFile();
-            using (var sfs = StdFileBufStream.OpenRead(FileName))
+            using (var sfs = Cxx11FileBufShim.OpenRead(FileName))
             {
                 // Seek to position 4 ('q' in "The quick...")
                 long pos = sfs.Seek(4, SeekOrigin.Begin);
@@ -208,7 +208,7 @@ namespace DicomStudio.Cxx11.Tests
             string testContent = "Unicode filename test content";
 
             // Write
-            using (var sfs = StdFileBufStream.OpenWrite(unicodeFileName))
+            using (var sfs = Cxx11FileBufShim.OpenWrite(unicodeFileName))
             {
                 var bytes = Encoding.UTF8.GetBytes(testContent);
                 sfs.Write(bytes, 0, bytes.Length);
@@ -218,7 +218,7 @@ namespace DicomStudio.Cxx11.Tests
             Assert.True(File.Exists(unicodeFileName));
 
             // Read
-            using (var sfs = StdFileBufStream.OpenRead(unicodeFileName))
+            using (var sfs = Cxx11FileBufShim.OpenRead(unicodeFileName))
             {
                 var buffer = new byte[testContent.Length * 2];
                 int read = sfs.Read(buffer, 0, buffer.Length);
