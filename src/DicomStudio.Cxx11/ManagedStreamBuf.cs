@@ -83,7 +83,7 @@ namespace DicomStudio.Cxx11
         }
 
         /// <summary>
-        /// 
+        ///
         /// </summary>
         /// <param name="buffer"></param>
         /// <exception cref="IOException"></exception>
@@ -97,7 +97,7 @@ namespace DicomStudio.Cxx11
         }
 
         /// <summary>
-        /// 
+        ///
         /// </summary>
         /// <param name="buffer"></param>
         /// <exception cref="IOException"></exception>
@@ -126,6 +126,12 @@ namespace DicomStudio.Cxx11
         public void Dispose()
         {
             _handle.Dispose();
+        }
+
+        public void Flush()
+        {
+            var ret = NativeLibrary.cxx11_managed_streambuf_flush(_handle);
+            if (ret < 0) throw new IOException("flush");
         }
     }
 }
