@@ -28,7 +28,7 @@ namespace DicomStudio.Cxx11
     }
 
     /// <summary>
-    /// Managed streambuf for C++.
+    /// Concreate Stream implementation using c++ std::fiebuf.
     /// </summary>
     internal sealed class Cxx11FileBufShim : Stream, IDisposable
     {
@@ -37,8 +37,10 @@ namespace DicomStudio.Cxx11
         private const bool DefaultIsAsync = false;
 
         private readonly Cxx11FileBufHandle _handle;
+
         public Cxx11FileBufShim(string path, FileMode mode)
-            : this(path, mode, mode == FileMode.Append ? FileAccess.Write : FileAccess.ReadWrite, DefaultShare, DefaultBufferSize, DefaultIsAsync)
+            : this(path, mode, mode == FileMode.Append ? FileAccess.Write : FileAccess.ReadWrite, DefaultShare,
+                DefaultBufferSize, DefaultIsAsync)
         {
         }
 
@@ -57,16 +59,20 @@ namespace DicomStudio.Cxx11
         {
         }
 
-        public Cxx11FileBufShim(string path, FileMode mode, FileAccess access, FileShare share, int bufferSize, bool useAsync)
+        public Cxx11FileBufShim(string path, FileMode mode, FileAccess access, FileShare share, int bufferSize,
+            bool useAsync)
             : this(path, mode, access, share, bufferSize, useAsync ? FileOptions.Asynchronous : FileOptions.None)
         {
         }
 
-        public Cxx11FileBufShim(string path, FileMode mode, FileAccess access, FileShare share, int bufferSize, FileOptions options)
+        public Cxx11FileBufShim(string path, FileMode mode, FileAccess access, FileShare share, int bufferSize,
+            FileOptions options)
             : this(path, mode, access, share, bufferSize, options, 0)
         {
         }
-        private Cxx11FileBufShim(string path, FileMode mode, FileAccess access, FileShare share, int bufferSize, FileOptions options, long preallocationSize)
+
+        private Cxx11FileBufShim(string path, FileMode mode, FileAccess access, FileShare share, int bufferSize,
+            FileOptions options, long preallocationSize)
         {
 #if WINDOWS
             _handle = NativeLibrary.cxx11_filebuf_create2(path, mode, access, share);
@@ -103,7 +109,7 @@ namespace DicomStudio.Cxx11
         public override void Flush()
         {
             var ret = NativeLibrary.cxx11_filebuf_flush(_handle);
-            if (ret == -1)
+            if (ret < 0)
             {
                 throw new IOException("Failed to flush the stream buffer.");
             }
@@ -112,7 +118,13 @@ namespace DicomStudio.Cxx11
         /// <inheritdoc />
         public override int Read(byte[] buffer, int offset, int count)
         {
-            return NativeLibrary.cxx11_filebuf_read(_handle, buffer, buffer.Length, offset, count);
+            var ret = NativeLibrary.cxx11_filebuf_read(_handle, buffer, buffer.Length, offset, count);
+            if (ret < 0)
+            {
+                throw new IOException("io");
+            }
+
+            return ret;
         }
 
         /// <inheritdoc />
@@ -124,48 +136,68 @@ namespace DicomStudio.Cxx11
         /// <inheritdoc />
         public override void SetLength(long value)
         {
-            int ret = NativeLibrary.cxx11_filebuf_set_length(_handle, value);
-            if( ret == -1)
+            var ret = NativeLibrary.cxx11_filebuf_set_length(_handle, value);
+            if (ret < 0)
             {
-                throw new IOException("Failed setLength");
+                throw new NotSupportedException("Failed setLength");
             }
         }
 
         /// <inheritdoc />
         public override void Write(byte[] buffer, int offset, int count)
         {
-            NativeLibrary.cxx11_filebuf_write(_handle, buffer, buffer.Length, offset, count);
+            var ret = NativeLibrary.cxx11_filebuf_write(_handle, buffer, buffer.Length, offset, count);
+            if (ret < 0)
+            {
+                throw new IOException("io");
+            }
         }
 
         /// <inheritdoc />
-        public override bool CanRead
-        {
-            get => NativeLibrary.cxx11_filebuf_can_read(_handle) == 0;
-        }
+        public override bool CanRead => NativeLibrary.cxx11_filebuf_can_read(_handle) == 0;
 
         /// <inheritdoc />
-        public override bool CanSeek
-        {
-            get => NativeLibrary.cxx11_filebuf_can_seek(_handle) == 0;
-        }
+        public override bool CanSeek => NativeLibrary.cxx11_filebuf_can_seek(_handle) == 0;
 
         /// <inheritdoc />
-        public override bool CanWrite
-        {
-            get => NativeLibrary.cxx11_filebuf_can_write(_handle) == 0;
-        }
+        public override bool CanWrite => NativeLibrary.cxx11_filebuf_can_write(_handle) == 0;
 
         /// <inheritdoc />
         public override long Length
         {
-            get => NativeLibrary.cxx11_filebuf_get_length(_handle) ;
+            get
+            {
+                var ret = NativeLibrary.cxx11_filebuf_get_length(_handle);
+                if (ret < 0)
+                {
+                    throw new NotSupportedException("not");
+                }
+
+                return ret;
+            }
         }
 
         /// <inheritdoc />
         public override long Position
         {
-            get => NativeLibrary.cxx11_filebuf_get_position(_handle);
-            set => NativeLibrary.cxx11_filebuf_set_position(_handle, value);
+            get
+            {
+                var ret = NativeLibrary.cxx11_filebuf_get_position(_handle);
+                if (ret < 0)
+                {
+                    throw new IOException("io");
+                }
+
+                return ret;
+            }
+            set
+            {
+                var ret = NativeLibrary.cxx11_filebuf_set_position(_handle, value);
+                if (ret < 0)
+                {
+                    throw new NotSupportedException("Failed to set position");
+                }
+            }
         }
     }
 }
