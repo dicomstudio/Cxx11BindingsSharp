@@ -57,11 +57,10 @@ namespace DicomStudio.Cxx11.Tests
         {
             //arrange
             var sut = new ManagedStreamBuf(ReadError, WriteError, FlushEmpty, SeekEmpty);
-            //var sut2 = new ManagedStreamBuf(ReadError, WriteError, FlushEmpty, SeekEmpty);
             var buffer = new byte[42];
 
             // act & assert
-            Assert.Throws<IOException>(() => sut.ReadInto(buffer));
+            Assert.Throws<NotSupportedException>(() => sut.ReadInto(buffer));
         }
 
         [Fact]
@@ -72,7 +71,7 @@ namespace DicomStudio.Cxx11.Tests
             var buffer = new byte[42];
 
             // act & assert
-            Assert.Throws<IOException>(() => sut.WriteInto(buffer));
+            Assert.Throws<NotSupportedException>(() => sut.WriteInto(buffer));
         }
     }
 }
