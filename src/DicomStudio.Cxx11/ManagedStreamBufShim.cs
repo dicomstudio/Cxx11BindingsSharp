@@ -3,20 +3,23 @@
 namespace DicomStudio.Cxx11
 {
     /// <summary>
-    /// Buffered stream wrapper.
+    /// Dual personality buffered stream wrapper. Provide a C++ streambuf interface for a managed Stream.
+    /// Since it derives from <see cref="Stream"/>, it can be used in any place where a <see cref="Stream"/> is expected.
     /// </summary>
-    public sealed class ManagedStreamBufStream : Stream
+    public sealed class ManagedStreamBufShim : Stream
     {
-        private readonly Stream _stream;
+        // the actual stream we are wrapping
+        private readonly Stream _actualStream;
+        // the managed streambuf handle (aka std::streambuf*)
         private readonly ManagedStreamBuf _managedStreamBuf;
 
         /// <summary>
         /// Buffered stream wrapper.
         /// </summary>
         /// <param name="stream"></param>
-        public ManagedStreamBufStream(Stream? stream)
+        public ManagedStreamBufShim(Stream? stream)
         {
-            _stream = stream ?? throw new System.ArgumentNullException(nameof(stream));
+            _actualStream = stream ?? throw new System.ArgumentNullException(nameof(stream));
             _managedStreamBuf = new ManagedStreamBuf(Read, Write, FlushImpl, Seek);
         }
 
@@ -24,7 +27,7 @@ namespace DicomStudio.Cxx11
         {
             try
             {
-                return _stream.Read(buffer, 0, count);
+                return _actualStream.Read(buffer, 0, count);
             }
             catch
             {
@@ -38,7 +41,7 @@ namespace DicomStudio.Cxx11
         {
             try
             {
-                _stream.Write(buffer, 0, count);
+                _actualStream.Write(buffer, 0, count);
                 return count;
             }
             catch
@@ -51,7 +54,7 @@ namespace DicomStudio.Cxx11
         {
             try
             {
-                var ret = _stream.Seek(offset, (SeekOrigin) origin);
+                var ret = _actualStream.Seek(offset, (SeekOrigin) origin);
                 return ret;
             }
             catch
@@ -64,7 +67,7 @@ namespace DicomStudio.Cxx11
         {
             try
             {
-                _stream.Flush();
+                _actualStream.Flush();
                 return 0;
             }
             catch
@@ -76,17 +79,16 @@ namespace DicomStudio.Cxx11
         /// <summary>
         /// Return the std::streambuf* handle.
         /// </summary>
-        /// <param name="managedStreamBufStream"></param>
+        /// <param name="managedStreamBufShim"></param>
         /// <returns></returns>
-        public static implicit operator StreamBufHandle(ManagedStreamBufStream managedStreamBufStream)
+        public static implicit operator StreamBufHandle(ManagedStreamBufShim managedStreamBufShim)
         {
-            return managedStreamBufStream._managedStreamBuf;
+            return managedStreamBufShim._managedStreamBuf;
         }
 
         public override void Flush()
         {
-            var ret = NativeLibrary.cxx11_managed_streambuf_flush(_managedStreamBuf);
-            if (ret < 0) throw new IOException("flush");
+            _managedStreamBuf.Flush();
         }
 
         public override int Read(byte[] buffer, int offset, int count)
@@ -106,24 +108,23 @@ namespace DicomStudio.Cxx11
 
         public override long Seek(long offset, SeekOrigin origin)
         {
-            return _stream.Seek(offset, origin);
+            return _actualStream.Seek(offset, origin);
         }
 
         public override void SetLength(long value)
         {
-            _stream.SetLength(value);
+            _actualStream.SetLength(value);
         }
 
-
-        public override bool CanRead => _stream.CanRead;
-        public override bool CanSeek => _stream.CanSeek;
-        public override bool CanWrite => _stream.CanWrite;
-        public override long Length => _stream.Length;
+        public override bool CanRead => _actualStream.CanRead;
+        public override bool CanSeek => _actualStream.CanSeek;
+        public override bool CanWrite => _actualStream.CanWrite;
+        public override long Length => _actualStream.Length;
 
         public override long Position
         {
-            get => _stream.Position;
-            set => _stream.Position = value;
+            get => _actualStream.Position;
+            set => _actualStream.Position = value;
         }
     }
 }
