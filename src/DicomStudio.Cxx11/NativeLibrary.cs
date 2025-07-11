@@ -59,12 +59,12 @@ namespace DicomStudio.Cxx11
         #region std::filebuf
 
         [DllImport("Cxx11Sharp", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Unicode)]
-        internal static extern StdFileBufHandle cxx11_filebuf_create1(
+        internal static extern Cxx11FileBufHandle cxx11_filebuf_create1(
             [MarshalAs(UnmanagedType.LPUTF8Str)] string path, FileMode fileMode, FileAccess fileAccess,
             FileShare fileShare);
 
         [DllImport("Cxx11Sharp", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Unicode)]
-        internal static extern StdFileBufHandle cxx11_filebuf_create2(
+        internal static extern Cxx11FileBufHandle cxx11_filebuf_create2(
             [MarshalAs(UnmanagedType.LPWStr)] string path, FileMode fileMode, FileAccess fileAccess,
             FileShare fileShare);
 
@@ -72,39 +72,39 @@ namespace DicomStudio.Cxx11
         internal static extern void cxx11_filebuf_delete(IntPtr handle);
 
         [DllImport("Cxx11Sharp", CallingConvention = CallingConvention.Cdecl)]
-        internal static extern int cxx11_filebuf_read(StdFileBufHandle handle, byte[] buffer, int bufferLength,
+        internal static extern int cxx11_filebuf_read(Cxx11FileBufHandle handle, byte[] buffer, int bufferLength,
             int offset, int count);
 
         [DllImport("Cxx11Sharp", CallingConvention = CallingConvention.Cdecl)]
-        internal static extern int cxx11_filebuf_write(StdFileBufHandle handle, byte[] buffer, int bufferLength,
+        internal static extern int cxx11_filebuf_write(Cxx11FileBufHandle handle, byte[] buffer, int bufferLength,
             int offset, int count);
 
         [DllImport("Cxx11Sharp", CallingConvention = CallingConvention.Cdecl)]
-        internal static extern long cxx11_filebuf_seek(StdFileBufHandle handle, long offset, SeekOrigin origin);
+        internal static extern long cxx11_filebuf_seek(Cxx11FileBufHandle handle, long offset, SeekOrigin origin);
 
         [DllImport("Cxx11Sharp", CallingConvention = CallingConvention.Cdecl)]
-        internal static extern int cxx11_filebuf_flush(StdFileBufHandle handle);
+        internal static extern int cxx11_filebuf_flush(Cxx11FileBufHandle handle);
 
         [DllImport("Cxx11Sharp", CallingConvention = CallingConvention.Cdecl)]
-        internal static extern long cxx11_filebuf_get_length(StdFileBufHandle handle);
+        internal static extern long cxx11_filebuf_get_length(Cxx11FileBufHandle handle);
 
         [DllImport("Cxx11Sharp", CallingConvention = CallingConvention.Cdecl)]
-        internal static extern int cxx11_filebuf_set_length(StdFileBufHandle handle, long value);
+        internal static extern int cxx11_filebuf_set_length(Cxx11FileBufHandle handle, long value);
 
         [DllImport("Cxx11Sharp", CallingConvention = CallingConvention.Cdecl)]
-        internal static extern long cxx11_filebuf_get_position(StdFileBufHandle handle);
+        internal static extern long cxx11_filebuf_get_position(Cxx11FileBufHandle handle);
 
         [DllImport("Cxx11Sharp", CallingConvention = CallingConvention.Cdecl)]
-        internal static extern int cxx11_filebuf_set_position(StdFileBufHandle handle, long position);
+        internal static extern int cxx11_filebuf_set_position(Cxx11FileBufHandle handle, long position);
 
         [DllImport("Cxx11Sharp", CallingConvention = CallingConvention.Cdecl)]
-        internal static extern int cxx11_filebuf_can_read(StdFileBufHandle handle);
+        internal static extern int cxx11_filebuf_can_read(Cxx11FileBufHandle handle);
 
         [DllImport("Cxx11Sharp", CallingConvention = CallingConvention.Cdecl)]
-        internal static extern int cxx11_filebuf_can_write(StdFileBufHandle handle);
+        internal static extern int cxx11_filebuf_can_write(Cxx11FileBufHandle handle);
 
         [DllImport("Cxx11Sharp", CallingConvention = CallingConvention.Cdecl)]
-        internal static extern int cxx11_filebuf_can_seek(StdFileBufHandle handle);
+        internal static extern int cxx11_filebuf_can_seek(Cxx11FileBufHandle handle);
 
         #endregion
     }
