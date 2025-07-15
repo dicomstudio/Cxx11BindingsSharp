@@ -5,6 +5,7 @@ using Xunit;
 
 namespace DicomStudio.Cxx11.Tests
 {
+    [Collection("NonParallelTests")]
     public class ManagedStreamBufShimFileTests
     {
         private const string TestText = "The quick brown fox jumps over the lazy dog";
