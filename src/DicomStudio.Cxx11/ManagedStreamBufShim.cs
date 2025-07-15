@@ -23,6 +23,18 @@ namespace DicomStudio.Cxx11
             _managedStreamBuf = new ManagedStreamBuf(Read, Write, FlushImpl, Seek);
         }
 
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                // Dispose managed resources here
+                _innerStream.Dispose();
+                _managedStreamBuf.Dispose();
+            }
+            // Dispose unmanaged resources here (if any)
+            base.Dispose(disposing);
+        }
+
         private int Read(byte[] buffer, int count)
         {
             try
