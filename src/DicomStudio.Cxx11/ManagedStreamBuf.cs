@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using Microsoft.Win32.SafeHandles;
 
@@ -74,11 +74,13 @@ namespace DicomStudio.Cxx11
 
         private int Read()
         {
+            if (_handle.IsClosed) return -1;
             return _readFunction(_buffer, _buffer.Length);
         }
 
         private int Write(int count)
         {
+            if (_handle.IsClosed) return -1;
             return _writeFunction(_buffer, count);
         }
 
@@ -87,13 +89,15 @@ namespace DicomStudio.Cxx11
         /// </summary>
         /// <param name="buffer"></param>
         /// <exception cref="IOException"></exception>
-        public void ReadInto(byte[] buffer)
+        public int ReadInto(byte[] buffer)
         {
             var ret = NativeLibrary.cxx11_managed_streambuf_read_into(_handle, buffer, buffer.Length);
             if (ret < 0)
             {
-                throw new IOException("ReadInto failure");
+                throw new NotSupportedException("Failed to write to the stream buffer.");
             }
+
+            return ret;
         }
 
         /// <summary>
@@ -101,13 +105,15 @@ namespace DicomStudio.Cxx11
         /// </summary>
         /// <param name="buffer"></param>
         /// <exception cref="IOException"></exception>
-        public void WriteInto(byte[] buffer)
+        public int WriteInto(byte[] buffer)
         {
             var ret = NativeLibrary.cxx11_managed_streambuf_write_into(_handle, buffer, buffer.Length);
             if (ret < 0)
             {
-                throw new IOException("WriteInto failure");
+                throw new NotSupportedException("Failed to write to the stream buffer.");
             }
+
+            return ret;
         }
 
         /// <summary>
