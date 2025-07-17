@@ -80,6 +80,8 @@ namespace DicomStudio.Cxx11
 
         private int Write(int count)
         {
+            // fwrite(0) is always valid even on read-only stream
+            if (count == 0) return 0;
             if (_handle.IsClosed) return -1;
             return _writeFunction(_buffer, count);
         }
