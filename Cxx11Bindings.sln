@@ -11,7 +11,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DicomStudio.Cxx11", "src\Di
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DicomStudio.Cxx11.Tests", "tests\DicomStudio.Cxx11.Tests\DicomStudio.Cxx11.Tests.csproj", "{D1CA7CE9-E3EF-43D6-BFE7-7E67B1752517}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Cxx11Sharp", "native\Cxx11Sharp.vcxproj", "{695CE18D-D191-4021-A465-B93948A49854}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Cxx11Bindings", "native\Cxx11Bindings.vcxproj", "{695CE18D-D191-4021-A465-B93948A49854}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{71EFEC39-F2DC-4B7E-9377-7F6AF2AB78F5}"
 	ProjectSection(SolutionItems) = preProject

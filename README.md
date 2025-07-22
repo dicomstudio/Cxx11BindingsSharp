@@ -1,4 +1,4 @@
-# Cxx11Sharp
+# Cxx11Bindings.NET
 
 Provide a thin layer to wrap a `System.IO.Stream` in C# to a portable C++ stream (`std::streambuf*`).
 Akin to `System.Runtime.InteropServices.ComTypes.IStream` on windows.

@@ -6,6 +6,12 @@ namespace DicomStudio.Cxx11
 {
     internal static class NativeLibrary
     {
+        public static int ExceptionToInt(Exception? ex)
+        {
+            // The HResult for a NullReferenceException in .NET is 0x80004003.
+            return ex?.HResult ?? (new NullReferenceException()).HResult;
+        }
+
         #region managed streambuf
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
@@ -20,12 +26,15 @@ namespace DicomStudio.Cxx11
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         internal delegate int FlushDelegate();
 
-        [DllImport("Cxx11Sharp", CallingConvention = CallingConvention.Cdecl)]
+        private const string LibraryName = "Cxx11Bindings";
+        private const CallingConvention CallConv = CallingConvention.Cdecl;
+
+        [DllImport(LibraryName, CallingConvention = CallConv)]
         private static extern StreamBufHandle cxx11_managed_streambuf_create(ReadDelegate readDelegate,
             WriteDelegate writeDelegate, FlushDelegate flushDelegate, SeekDelegate seekDelegate, [In] byte[] buffer,
             [In] int buffering);
 
-        // synthatic sugar
+        // syntactic sugar
         internal static StreamBufHandle managed_streambuf_create(ReadDelegate read, WriteDelegate write,
             Func<int> flushFunction, Func<long, int, long> seekFunction, byte[] buffer)
         {
@@ -39,84 +48,84 @@ namespace DicomStudio.Cxx11
             return ret;
         }
 
-        [DllImport("Cxx11Sharp", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LibraryName, CallingConvention = CallConv)]
         internal static extern int cxx11_managed_streambuf_delete(IntPtr handle);
 
-        [DllImport("Cxx11Sharp", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LibraryName, CallingConvention = CallConv)]
         internal static extern int cxx11_managed_streambuf_read_into(StreamBufHandle src, byte[] buffer, int count);
 
-        [DllImport("Cxx11Sharp", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LibraryName, CallingConvention = CallConv)]
         internal static extern int cxx11_managed_streambuf_write_into(StreamBufHandle dst, byte[] buffer, int count);
 
-        [DllImport("Cxx11Sharp", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LibraryName, CallingConvention = CallConv)]
         internal static extern long
             cxx11_managed_streambuf_seek(StreamBufHandle handle, long offset, SeekOrigin origin);
 
-        [DllImport("Cxx11Sharp", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LibraryName, CallingConvention = CallConv)]
         internal static extern int cxx11_managed_streambuf_flush(StreamBufHandle dst);
 
-        [DllImport("Cxx11Sharp", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LibraryName, CallingConvention = CallConv)]
         internal static extern long cxx11_managed_streambuf_get_length(StreamBufHandle src);
 
-        [DllImport("Cxx11Sharp", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LibraryName, CallingConvention = CallConv)]
         internal static extern int cxx11_managed_streambuf_set_length(StreamBufHandle handle, long value);
 
-        [DllImport("Cxx11Sharp", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LibraryName, CallingConvention = CallConv)]
         internal static extern long cxx11_managed_streambuf_get_position(StreamBufHandle handle);
 
-        [DllImport("Cxx11Sharp", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LibraryName, CallingConvention = CallConv)]
         internal static extern int cxx11_managed_streambuf_set_position(StreamBufHandle handle, long position);
 
         #endregion
 
         #region std::filebuf
 
-        [DllImport("Cxx11Sharp", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Unicode)]
+        [DllImport(LibraryName, CallingConvention = CallConv, CharSet = CharSet.Unicode)]
         internal static extern Cxx11FileBufHandle cxx11_filebuf_create1(
             [MarshalAs(UnmanagedType.LPUTF8Str)] string path, FileMode fileMode, FileAccess fileAccess,
             FileShare fileShare);
 
-        [DllImport("Cxx11Sharp", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Unicode)]
+        [DllImport(LibraryName, CallingConvention = CallConv, CharSet = CharSet.Unicode)]
         internal static extern Cxx11FileBufHandle cxx11_filebuf_create2(
             [MarshalAs(UnmanagedType.LPWStr)] string path, FileMode fileMode, FileAccess fileAccess,
             FileShare fileShare);
 
-        [DllImport("Cxx11Sharp", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LibraryName, CallingConvention = CallConv)]
         internal static extern void cxx11_filebuf_delete(IntPtr handle);
 
-        [DllImport("Cxx11Sharp", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LibraryName, CallingConvention = CallConv)]
         internal static extern int cxx11_filebuf_read(Cxx11FileBufHandle handle, byte[] buffer, int bufferLength,
             int offset, int count);
 
-        [DllImport("Cxx11Sharp", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LibraryName, CallingConvention = CallConv)]
         internal static extern int cxx11_filebuf_write(Cxx11FileBufHandle handle, byte[] buffer, int bufferLength,
             int offset, int count);
 
-        [DllImport("Cxx11Sharp", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LibraryName, CallingConvention = CallConv)]
         internal static extern long cxx11_filebuf_seek(Cxx11FileBufHandle handle, long offset, SeekOrigin origin);
 
-        [DllImport("Cxx11Sharp", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LibraryName, CallingConvention = CallConv)]
         internal static extern int cxx11_filebuf_flush(Cxx11FileBufHandle handle);
 
-        [DllImport("Cxx11Sharp", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LibraryName, CallingConvention = CallConv)]
         internal static extern long cxx11_filebuf_get_length(Cxx11FileBufHandle handle);
 
-        [DllImport("Cxx11Sharp", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LibraryName, CallingConvention = CallConv)]
         internal static extern int cxx11_filebuf_set_length(Cxx11FileBufHandle handle, long value);
 
-        [DllImport("Cxx11Sharp", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LibraryName, CallingConvention = CallConv)]
         internal static extern long cxx11_filebuf_get_position(Cxx11FileBufHandle handle);
 
-        [DllImport("Cxx11Sharp", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LibraryName, CallingConvention = CallConv)]
         internal static extern int cxx11_filebuf_set_position(Cxx11FileBufHandle handle, long position);
 
-        [DllImport("Cxx11Sharp", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LibraryName, CallingConvention = CallConv)]
         internal static extern int cxx11_filebuf_can_read(Cxx11FileBufHandle handle);
 
-        [DllImport("Cxx11Sharp", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LibraryName, CallingConvention = CallConv)]
         internal static extern int cxx11_filebuf_can_write(Cxx11FileBufHandle handle);
 
-        [DllImport("Cxx11Sharp", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LibraryName, CallingConvention = CallConv)]
         internal static extern int cxx11_filebuf_can_seek(Cxx11FileBufHandle handle);
 
         #endregion
