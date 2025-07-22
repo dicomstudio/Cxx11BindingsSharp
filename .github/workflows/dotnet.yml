@@ -18,6 +18,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+    - name: Install Google Test
+      run: sudo apt-get update && sudo apt-get install -y libgtest-dev
     - name: CMake configure
       run: cmake -S native -B build
     - name: CMake build
@@ -35,6 +37,6 @@ jobs:
     - name: Build
       run: dotnet build --no-restore
     - name: Manual copy
-      run: cp target/x86_64-unknown-linux-gnu/lib/libCxx11Sharp.so tests/DicomStudio.Cxx11.Tests/bin/Debug/net6.0/
+      run: cp target/x86_64-unknown-linux-gnu/lib/Cxx11Bindings.so tests/DicomStudio.Cxx11.Tests/bin/Debug/net6.0/
     - name: Test
       run: dotnet test --no-build --verbosity normal
