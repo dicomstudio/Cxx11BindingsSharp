@@ -36,7 +36,7 @@
 
     <ItemGroup>
         <!-- https://stackoverflow.com/questions/43412140/csproj-copy-files-depending-on-operating-system -->
-        <ProjectReference Include="..\..\native\Cxx11Bindings.vcxproj" Condition="$([MSBuild]::IsOSPlatform('Windows'))">
+        <ProjectReference Include="..\..\native\Cxx11Bindings.vcxproj" Condition="$([MSBuild]::IsOSPlatform('Windows')) and Exists('..\..\native\Cxx11Bindings.vcxproj')">
             <!-- https://stackoverflow.com/questions/5107694/how-do-i-add-a-reference-to-an-unmanaged-c-project-called-by-a-c-sharp-project -->
             <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
             <OutputItemType>Content</OutputItemType>
