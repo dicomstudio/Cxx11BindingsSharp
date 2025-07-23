@@ -1,132 +1,170 @@
 using System;
-using System.IO;
 using System.Runtime.InteropServices;
+using Microsoft.Win32.SafeHandles;
 
 namespace DicomStudio.Cxx11
 {
-    internal static class NativeLibrary
+    internal sealed class C11StreamHandle : SafeHandleZeroOrMinusOneIsInvalid
     {
-        public static int ExceptionToInt(Exception? ex)
+        /// <summary>
+        /// default constructor
+        /// </summary>
+        public C11StreamHandle() : base(ownsHandle: true)
         {
-            // The HResult for a NullReferenceException in .NET is 0x80004003.
-            return ex?.HResult ?? (new NullReferenceException()).HResult;
         }
 
-        #region managed streambuf
+        internal NativeLibrary.ReadDelegate? Read { get; set; }
+        internal NativeLibrary.WriteDelegate? Write { get; set; }
+        internal NativeLibrary.SeekDelegate? Seek { get; set; }
+        internal NativeLibrary.FlushDelegate? Flush { get; set; }
+        internal NativeLibrary.TruncDelegate? Trunc { get; set; }
+
+        /// <summary>
+        /// release the handle
+        /// </summary>
+        /// <returns>true</returns>
+        protected override bool ReleaseHandle()
+        {
+            return NativeLibrary.c11_stream_delete(handle) == 0;
+        }
+    }
+
+    public sealed class C11StreamWrapper : IDisposable
+    {
+        private readonly C11StreamHandle _handle;
+
+        public C11StreamWrapper(NativeLibrary.ReadDelegate readFn, NativeLibrary.WriteDelegate writeFn,
+            NativeLibrary.SeekDelegate seekFn, NativeLibrary.FlushDelegate flushFn, NativeLibrary.TruncDelegate truncFn)
+        {
+            _handle = NativeLibrary.c11_stream_create(readFn, writeFn, seekFn, flushFn, truncFn);
+            if (_handle.IsInvalid)
+                throw new ArgumentException("Invalid parameters");
+            // keep delegates alive:
+            _handle.Read = readFn;
+            _handle.Write = writeFn;
+            _handle.Seek = seekFn;
+            _handle.Flush = flushFn;
+            _handle.Trunc = truncFn;
+        }
+
+        public void Dispose()
+        {
+            _handle.Dispose();
+        }
+    }
+
+    internal sealed class Cxx11StreamBufHandle : SafeHandleZeroOrMinusOneIsInvalid
+    {
+        /// <summary>
+        /// default constructor
+        /// </summary>
+        public Cxx11StreamBufHandle() : base(ownsHandle: true)
+        {
+        }
+
+        internal NativeLibrary.ReadDelegate? Read { get; set; }
+        internal NativeLibrary.WriteDelegate? Write { get; set; }
+        internal NativeLibrary.SeekDelegate? Seek { get; set; }
+        internal NativeLibrary.FlushDelegate? Flush { get; set; }
+
+        /// <summary>
+        /// release the handle
+        /// </summary>
+        /// <returns>true</returns>
+        protected override bool ReleaseHandle()
+        {
+            return NativeLibrary.cxx11_streambuf_delete(handle) == 0;
+        }
+    }
+
+    public sealed class Cxx11StreamBufWrapper : IDisposable
+    {
+        private readonly Cxx11StreamBufHandle _handle;
+        private readonly byte[]? _buffer;
+
+        public Cxx11StreamBufWrapper(NativeLibrary.ReadDelegate readFn, NativeLibrary.WriteDelegate writeFn,
+            NativeLibrary.SeekDelegate seekFn, NativeLibrary.FlushDelegate flushFn)
+        {
+            _buffer = null;
+            _handle = NativeLibrary.cxx11_streambuf_create(readFn, writeFn, seekFn, flushFn);
+            if (_handle.IsInvalid)
+                throw new ArgumentException("Invalid parameters");
+            // keep delegates alive:
+            _handle.Read = readFn;
+            _handle.Write = writeFn;
+            _handle.Seek = seekFn;
+            _handle.Flush = flushFn;
+        }
+
+        public Cxx11StreamBufWrapper(NativeLibrary.ReadDelegate readFn, NativeLibrary.WriteDelegate writeFn,
+            NativeLibrary.SeekDelegate seekFn, NativeLibrary.FlushDelegate flushFn, int buffering)
+        {
+            _buffer = new byte[buffering];
+            _handle = NativeLibrary.cxx11_streambuf_create_buffer(readFn, writeFn, seekFn, flushFn, _buffer,
+                (uint) _buffer.Length);
+            if (_handle.IsInvalid)
+                throw new ArgumentException("Invalid parameters");
+            // keep delegates alive:
+            _handle.Read = readFn;
+            _handle.Write = writeFn;
+            _handle.Seek = seekFn;
+            _handle.Flush = flushFn;
+        }
+
+        internal byte[]? GetBuffer()
+        {
+            return _buffer;
+        }
+
+        public void Dispose()
+        {
+            _handle.Dispose();
+        }
+    }
+
+    public static class NativeLibrary
+    {
+        #region c11 stream
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        internal delegate int ReadDelegate();
+        public delegate int ReadDelegate([Out] byte[] buffer, uint size);
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        internal delegate int WriteDelegate(int count);
+        public delegate int WriteDelegate([In] byte[] buffer, uint size);
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        internal delegate long SeekDelegate(long offset, int origin);
+        public delegate long SeekDelegate(long off, int dir);
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        internal delegate int FlushDelegate();
+        public delegate int FlushDelegate();
+
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        public delegate int TruncDelegate(ulong length);
 
         private const string LibraryName = "Cxx11Bindings";
         private const CallingConvention CallConv = CallingConvention.Cdecl;
 
         [DllImport(LibraryName, CallingConvention = CallConv)]
-        private static extern StreamBufHandle cxx11_managed_streambuf_create(ReadDelegate readDelegate,
-            WriteDelegate writeDelegate, FlushDelegate flushDelegate, SeekDelegate seekDelegate, [In] byte[] buffer,
-            [In] int buffering);
-
-        // syntactic sugar
-        internal static StreamBufHandle managed_streambuf_create(ReadDelegate read, WriteDelegate write,
-            Func<int> flushFunction, Func<long, int, long> seekFunction, byte[] buffer)
-        {
-            var flush = new FlushDelegate(flushFunction);
-            var seek = new SeekDelegate(seekFunction);
-            var ret = cxx11_managed_streambuf_create(read, write, flush, seek, buffer, buffer.Length);
-            ret.Read = read;
-            ret.Write = write;
-            ret.Flush = flush;
-            ret.Seek = seek;
-            return ret;
-        }
+        internal static extern C11StreamHandle c11_stream_create(ReadDelegate read, WriteDelegate write,
+            SeekDelegate seek, FlushDelegate flush, TruncDelegate trunc);
 
         [DllImport(LibraryName, CallingConvention = CallConv)]
-        internal static extern int cxx11_managed_streambuf_delete(IntPtr handle);
-
-        [DllImport(LibraryName, CallingConvention = CallConv)]
-        internal static extern int cxx11_managed_streambuf_read_into(StreamBufHandle src, byte[] buffer, int count);
-
-        [DllImport(LibraryName, CallingConvention = CallConv)]
-        internal static extern int cxx11_managed_streambuf_write_into(StreamBufHandle dst, byte[] buffer, int count);
-
-        [DllImport(LibraryName, CallingConvention = CallConv)]
-        internal static extern long
-            cxx11_managed_streambuf_seek(StreamBufHandle handle, long offset, SeekOrigin origin);
-
-        [DllImport(LibraryName, CallingConvention = CallConv)]
-        internal static extern int cxx11_managed_streambuf_flush(StreamBufHandle dst);
-
-        [DllImport(LibraryName, CallingConvention = CallConv)]
-        internal static extern long cxx11_managed_streambuf_get_length(StreamBufHandle src);
-
-        [DllImport(LibraryName, CallingConvention = CallConv)]
-        internal static extern int cxx11_managed_streambuf_set_length(StreamBufHandle handle, long value);
-
-        [DllImport(LibraryName, CallingConvention = CallConv)]
-        internal static extern long cxx11_managed_streambuf_get_position(StreamBufHandle handle);
-
-        [DllImport(LibraryName, CallingConvention = CallConv)]
-        internal static extern int cxx11_managed_streambuf_set_position(StreamBufHandle handle, long position);
+        internal static extern int c11_stream_delete(IntPtr handle);
 
         #endregion
 
-        #region std::filebuf
-
-        [DllImport(LibraryName, CallingConvention = CallConv, CharSet = CharSet.Unicode)]
-        internal static extern Cxx11FileBufHandle cxx11_filebuf_create1(
-            [MarshalAs(UnmanagedType.LPUTF8Str)] string path, FileMode fileMode, FileAccess fileAccess,
-            FileShare fileShare);
-
-        [DllImport(LibraryName, CallingConvention = CallConv, CharSet = CharSet.Unicode)]
-        internal static extern Cxx11FileBufHandle cxx11_filebuf_create2(
-            [MarshalAs(UnmanagedType.LPWStr)] string path, FileMode fileMode, FileAccess fileAccess,
-            FileShare fileShare);
+        #region cxx11 streambuf
 
         [DllImport(LibraryName, CallingConvention = CallConv)]
-        internal static extern void cxx11_filebuf_delete(IntPtr handle);
+        internal static extern Cxx11StreamBufHandle cxx11_streambuf_create(ReadDelegate read, WriteDelegate write,
+            SeekDelegate seek, FlushDelegate flush);
 
         [DllImport(LibraryName, CallingConvention = CallConv)]
-        internal static extern int cxx11_filebuf_read(Cxx11FileBufHandle handle, byte[] buffer, int bufferLength,
-            int offset, int count);
+        internal static extern Cxx11StreamBufHandle cxx11_streambuf_create_buffer(ReadDelegate read,
+            WriteDelegate write, SeekDelegate seek, FlushDelegate flush, byte[] buffer, uint count);
 
         [DllImport(LibraryName, CallingConvention = CallConv)]
-        internal static extern int cxx11_filebuf_write(Cxx11FileBufHandle handle, byte[] buffer, int bufferLength,
-            int offset, int count);
-
-        [DllImport(LibraryName, CallingConvention = CallConv)]
-        internal static extern long cxx11_filebuf_seek(Cxx11FileBufHandle handle, long offset, SeekOrigin origin);
-
-        [DllImport(LibraryName, CallingConvention = CallConv)]
-        internal static extern int cxx11_filebuf_flush(Cxx11FileBufHandle handle);
-
-        [DllImport(LibraryName, CallingConvention = CallConv)]
-        internal static extern long cxx11_filebuf_get_length(Cxx11FileBufHandle handle);
-
-        [DllImport(LibraryName, CallingConvention = CallConv)]
-        internal static extern int cxx11_filebuf_set_length(Cxx11FileBufHandle handle, long value);
-
-        [DllImport(LibraryName, CallingConvention = CallConv)]
-        internal static extern long cxx11_filebuf_get_position(Cxx11FileBufHandle handle);
-
-        [DllImport(LibraryName, CallingConvention = CallConv)]
-        internal static extern int cxx11_filebuf_set_position(Cxx11FileBufHandle handle, long position);
-
-        [DllImport(LibraryName, CallingConvention = CallConv)]
-        internal static extern int cxx11_filebuf_can_read(Cxx11FileBufHandle handle);
-
-        [DllImport(LibraryName, CallingConvention = CallConv)]
-        internal static extern int cxx11_filebuf_can_write(Cxx11FileBufHandle handle);
-
-        [DllImport(LibraryName, CallingConvention = CallConv)]
-        internal static extern int cxx11_filebuf_can_seek(Cxx11FileBufHandle handle);
+        internal static extern int cxx11_streambuf_delete(IntPtr handle);
 
         #endregion
     }

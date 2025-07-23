@@ -58,7 +58,7 @@ namespace DicomStudio.Cxx11.Tests
             // No exception means success
         }
 
-        [Fact(Skip = "FIXME")]
+        [Fact]
         public void Read_Write_Seek_WorkCorrectly()
         {
             var ms = new MemoryStream();
@@ -71,15 +71,6 @@ namespace DicomStudio.Cxx11.Tests
             int read = wrap.Read(buffer, 0, 3);
             Assert.Equal(3, read);
             Assert.Equal(data, buffer);
-        }
-
-        [Fact]
-        public void TestSize_ReturnsSize()
-        {
-            var ms = new MemoryStream(new byte[42]);
-            var wrap = new ManagedStreamBufShim(ms);
-            var ret = NativeLibrary.cxx11_managed_streambuf_get_length(wrap);
-            Assert.Equal(42, ret);
         }
     }
 }

@@ -37,7 +37,7 @@ namespace DicomStudio.Cxx11.Tests
             CreateTestFile();
             using (var sfs = new FileStream(FileName, FileMode.Open, FileAccess.Read))
             {
-                var wrap = new ManagedStreamBufShim2(sfs);
+                var wrap = new ManagedStreamBufShim(sfs);
                 var buffer = new byte[512];
                 var ret = wrap.Read(buffer, 0, buffer.Length);
                 Assert.Equal(TestText.Length, ret);
@@ -221,7 +221,7 @@ namespace DicomStudio.Cxx11.Tests
             }
         }
 
-        [Fact(Skip = "SetLength unimplemented on windows")]
+        [Fact]
         public void SetLength_ShouldTruncateOrExtendFile()
         {
             CreateTestFile();
