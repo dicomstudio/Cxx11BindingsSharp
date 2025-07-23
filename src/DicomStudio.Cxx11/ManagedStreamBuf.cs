@@ -18,10 +18,10 @@ namespace DicomStudio.Cxx11
 
         // It is important to store a reference to the delegates to prevent them from being garbage collected before _handle is released.
         // https://stackoverflow.com/questions/49466509/delegate-on-instance-method-passed-by-p-invoke
-        internal NativeLibrary.ReadDelegate Read { get; set; }
-        internal NativeLibrary.WriteDelegate Write { get; set; }
-        internal NativeLibrary.FlushDelegate Flush { get; set; }
-        internal NativeLibrary.SeekDelegate Seek { get; set; }
+        internal NativeLibrary.ReadDelegate? Read { get; set; }
+        internal NativeLibrary.WriteDelegate? Write { get; set; }
+        internal NativeLibrary.FlushDelegate? Flush { get; set; }
+        internal NativeLibrary.SeekDelegate? Seek { get; set; }
 
         /// <summary>
         /// release the handle

@@ -31,6 +31,20 @@ namespace DicomStudio.Cxx11.Tests
             }
         }
 
+        [Fact]
+        public void Read_ShouldSucceed2()
+        {
+            CreateTestFile();
+            using (var sfs = new FileStream(FileName, FileMode.Open, FileAccess.Read))
+            {
+                var wrap = new ManagedStreamBufShim2(sfs);
+                var buffer = new byte[512];
+                var ret = wrap.Read(buffer, 0, buffer.Length);
+                Assert.Equal(TestText.Length, ret);
+                var data = Encoding.UTF8.GetBytes(TestText);
+                Assert.Equal(data, buffer[..ret]);
+            }
+        }
 
         [Fact]
         public void CanReadWriteSeek_ReflectsUnderlyingStream()
@@ -48,14 +62,14 @@ namespace DicomStudio.Cxx11.Tests
         [Fact]
         public void Length_ReturnsUnderlyingFileLength()
         {
-            var path = "dest.txt";
+            const string path = "dest.txt";
             File.Delete(path);
             var fs = File.OpenWrite(path);
             var wrap = new ManagedStreamBufShim(fs);
             var data = Encoding.UTF8.GetBytes("abcd");
             wrap.Write(data, 0, data.Length);
             wrap.Flush();
-            long length = new System.IO.FileInfo(path).Length;
+            var length = new System.IO.FileInfo(path).Length;
             Assert.Equal(data.Length, length);
         }
 
