@@ -7,9 +7,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{7CB5EAA7-6A2
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{4003AC6C-E0EA-4A4B-BA4A-35BEAE8EDAC3}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DicomStudio.Cxx11", "src\DicomStudio.Cxx11\DicomStudio.Cxx11.csproj", "{5F4E989B-BC5C-4925-A7A7-9DF3E3EDA279}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Cxx11BindingsSharp", "src\Cxx11BindingsSharp\Cxx11BindingsSharp.csproj", "{5F4E989B-BC5C-4925-A7A7-9DF3E3EDA279}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DicomStudio.Cxx11.Tests", "tests\DicomStudio.Cxx11.Tests\DicomStudio.Cxx11.Tests.csproj", "{D1CA7CE9-E3EF-43D6-BFE7-7E67B1752517}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Cxx11BindingsSharp.Tests", "tests\Cxx11BindingsSharp.Tests\Cxx11BindingsSharp.Tests.csproj", "{D1CA7CE9-E3EF-43D6-BFE7-7E67B1752517}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Cxx11Bindings", "native\Cxx11Bindings.vcxproj", "{695CE18D-D191-4021-A465-B93948A49854}"
 EndProject
@@ -17,6 +17,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 	ProjectSection(SolutionItems) = preProject
 		.editorconfig = .editorconfig
 		README.md = README.md
+		.github\workflows\dotnet.yml = .github\workflows\dotnet.yml
 	EndProjectSection
 EndProject
 Global
@@ -53,7 +54,7 @@ Global
 		{D1CA7CE9-E3EF-43D6-BFE7-7E67B1752517}.Release|x64.Build.0 = Release|x64
 		{D1CA7CE9-E3EF-43D6-BFE7-7E67B1752517}.Release|x86.ActiveCfg = Release|x86
 		{D1CA7CE9-E3EF-43D6-BFE7-7E67B1752517}.Release|x86.Build.0 = Release|x86
-		{695CE18D-D191-4021-A465-B93948A49854}.Debug|Any CPU.ActiveCfg = Debug|Win32
+		{695CE18D-D191-4021-A465-B93948A49854}.Debug|Any CPU.ActiveCfg = Debug|x64
 		{695CE18D-D191-4021-A465-B93948A49854}.Debug|x64.ActiveCfg = Debug|x64
 		{695CE18D-D191-4021-A465-B93948A49854}.Debug|x64.Build.0 = Debug|x64
 		{695CE18D-D191-4021-A465-B93948A49854}.Debug|x86.ActiveCfg = Debug|Win32

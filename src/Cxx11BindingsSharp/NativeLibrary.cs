@@ -2,7 +2,7 @@ using System;
 using System.Runtime.InteropServices;
 using Microsoft.Win32.SafeHandles;
 
-namespace DicomStudio.Cxx11
+namespace Cxx11BindingsSharp
 {
     internal sealed class C11StreamHandle : SafeHandleZeroOrMinusOneIsInvalid
     {

@@ -3,7 +3,7 @@ using System.IO;
 using System.Text;
 using Xunit;
 
-namespace DicomStudio.Cxx11.Tests
+namespace Cxx11BindingsSharp.Tests
 {
     [Collection("NonParallelTests")]
     public class ManagedStreamBufShimFileTests
