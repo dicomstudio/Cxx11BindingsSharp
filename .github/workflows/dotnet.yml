@@ -20,8 +20,6 @@ concurrency:
 jobs:
   linux-amd64:
     runs-on: ubuntu-latest
-    permissions:
-      packages: read
     steps:
       - uses: actions/checkout@v3
       - name: Install Google Test
@@ -32,6 +30,12 @@ jobs:
         run: cmake --build build --config Release
       - name: CMake install
         run: cmake --install build --prefix target/x86_64-unknown-linux-gnu
+      - name: upload Cxx11Bindings.so
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ github.job }}
+          path: target/x86_64-unknown-linux-gnu/lib/Cxx11Bindings.so
+          retention-days: 1
       - name: Setup .NET
         uses: actions/setup-dotnet@v3
         with:
@@ -45,12 +49,48 @@ jobs:
       - name: Test
         run: dotnet test --no-build --verbosity normal
 
+  windows-amd64:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Run vcpkg
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgDirectory: '${{ runner.workspace }}/b/vcpkg'
+          vcpkgGitCommitId: 'ef7dbf94b9198bc58f45951adcf1f041fcbc5ea0'
+      - name: CMake configure
+        run: cmake -S native -B build -DCMAKE_TOOLCHAIN_FILE=${{ runner.workspace }}/b/vcpkg/scripts/buildsystems/vcpkg.cmake
+      - name: CMake build
+        run: cmake --build build --config Release
+      - name: CMake install
+        run: cmake --install build --prefix target/x86_64-pc-windows-msvc
+      - name: upload Cxx11Bindings.dll
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ github.job }}
+          path: target/x86_64-pc-windows-msvc/lib/Cxx11Bindings.dll
+          retention-days: 1
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: 6.0.x
+      - name: Restore dependencies
+        run: dotnet restore
+      - name: Remove native Cxx11Bindings.vcxproj
+        run: rm native/Cxx11Bindings.vcxproj
+      - name: Build
+        run: dotnet build --no-restore
+      - name: Manual copy
+        run: cp target/x86_64-pc-windows-msvc/lib/Cxx11Bindings.dll tests/Cxx11BindingsSharp.Tests/bin/Debug/net6.0/
+      - name: Test
+        run: dotnet test --no-build --verbosity normal
+
   publish-github-nuget:
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     permissions:
       packages: write
-    needs: [ linux-amd64 ]
+    needs: [ linux-amd64, windows-amd64 ]
     steps:
       - uses: actions/checkout@v3
       - uses: actions/download-artifact@v4
