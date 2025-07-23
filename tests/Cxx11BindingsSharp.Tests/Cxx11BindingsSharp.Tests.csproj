@@ -7,7 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\DicomStudio.Cxx11\DicomStudio.Cxx11.csproj" />
+    <ProjectReference Include="..\..\src\Cxx11BindingsSharp\Cxx11BindingsSharp.csproj" />
   </ItemGroup>
 
   <ItemGroup>

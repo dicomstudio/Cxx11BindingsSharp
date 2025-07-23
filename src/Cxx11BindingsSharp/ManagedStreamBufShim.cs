@@ -1,7 +1,7 @@
 using System;
 using System.IO;
 
-namespace DicomStudio.Cxx11
+namespace Cxx11BindingsSharp
 {
     /// <summary>
     /// Dual personality (C# and C++) buffered stream wrapper. Provide a C++ std::streambuf interface for a managed Stream.
