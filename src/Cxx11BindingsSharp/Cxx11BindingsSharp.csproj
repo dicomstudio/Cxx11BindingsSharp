@@ -5,6 +5,7 @@
         <Platforms>AnyCPU;x64;x86</Platforms>
         <Nullable>enable</Nullable>
         <PackageReadmeFile>README.md</PackageReadmeFile>
+        <Version>0.0.0</Version>
     </PropertyGroup>
 
     <!-- Dump version for clarity -->
