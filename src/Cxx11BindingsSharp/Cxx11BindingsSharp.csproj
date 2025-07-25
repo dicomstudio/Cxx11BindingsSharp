@@ -33,8 +33,10 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <None Include="../../target/linux-amd64/Cxx11Bindings.so" Pack="true" PackagePath="runtimes/linux-x64/native" />
-        <None Include="../../target/windows-amd64/Cxx11Bindings.dll" Pack="true" PackagePath="runtimes/win-x64/native" />
+        <!-- pick the linux header file since on ubuntu and install it in the shared location -->
+        <None Include="../../target/linux-amd64/include/cxx11bindings.h" Pack="true" PackagePath="build/native/include" />
+        <None Include="../../target/linux-amd64/lib/Cxx11Bindings.so" Pack="true" PackagePath="runtimes/linux-x64/native" />
+        <None Include="../../target/windows-amd64/lib/Cxx11Bindings.dll" Pack="true" PackagePath="runtimes/win-x64/native" />
         <None Include="../../README.md" Pack="true" PackagePath="/"/>
     </ItemGroup>
 
