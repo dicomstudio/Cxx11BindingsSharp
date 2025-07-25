@@ -53,75 +53,6 @@ namespace Cxx11BindingsSharp
         }
     }
 
-    internal sealed class Cxx11StreamBufHandle : SafeHandleZeroOrMinusOneIsInvalid
-    {
-        /// <summary>
-        /// default constructor
-        /// </summary>
-        public Cxx11StreamBufHandle() : base(ownsHandle: true)
-        {
-        }
-
-        internal NativeLibrary.ReadDelegate? Read { get; set; }
-        internal NativeLibrary.WriteDelegate? Write { get; set; }
-        internal NativeLibrary.SeekDelegate? Seek { get; set; }
-        internal NativeLibrary.FlushDelegate? Flush { get; set; }
-
-        /// <summary>
-        /// release the handle
-        /// </summary>
-        /// <returns>true</returns>
-        protected override bool ReleaseHandle()
-        {
-            return NativeLibrary.cxx11_streambuf_delete(handle) == 0;
-        }
-    }
-
-    public sealed class Cxx11StreamBufWrapper : IDisposable
-    {
-        private readonly Cxx11StreamBufHandle _handle;
-        private readonly byte[]? _buffer;
-
-        public Cxx11StreamBufWrapper(NativeLibrary.ReadDelegate readFn, NativeLibrary.WriteDelegate writeFn,
-            NativeLibrary.SeekDelegate seekFn, NativeLibrary.FlushDelegate flushFn)
-        {
-            _buffer = null;
-            _handle = NativeLibrary.cxx11_streambuf_create(readFn, writeFn, seekFn, flushFn);
-            if (_handle.IsInvalid)
-                throw new ArgumentException("Invalid parameters");
-            // keep delegates alive:
-            _handle.Read = readFn;
-            _handle.Write = writeFn;
-            _handle.Seek = seekFn;
-            _handle.Flush = flushFn;
-        }
-
-        public Cxx11StreamBufWrapper(NativeLibrary.ReadDelegate readFn, NativeLibrary.WriteDelegate writeFn,
-            NativeLibrary.SeekDelegate seekFn, NativeLibrary.FlushDelegate flushFn, int buffering)
-        {
-            _buffer = new byte[buffering];
-            _handle = NativeLibrary.cxx11_streambuf_create_buffer(readFn, writeFn, seekFn, flushFn, _buffer,
-                (uint) _buffer.Length);
-            if (_handle.IsInvalid)
-                throw new ArgumentException("Invalid parameters");
-            // keep delegates alive:
-            _handle.Read = readFn;
-            _handle.Write = writeFn;
-            _handle.Seek = seekFn;
-            _handle.Flush = flushFn;
-        }
-
-        internal byte[]? GetBuffer()
-        {
-            return _buffer;
-        }
-
-        public void Dispose()
-        {
-            _handle.Dispose();
-        }
-    }
-
     public static class NativeLibrary
     {
         #region c11 stream
@@ -150,21 +81,6 @@ namespace Cxx11BindingsSharp
 
         [DllImport(LibraryName, CallingConvention = CallConv)]
         internal static extern int c11_stream_delete(IntPtr handle);
-
-        #endregion
-
-        #region cxx11 streambuf
-
-        [DllImport(LibraryName, CallingConvention = CallConv)]
-        internal static extern Cxx11StreamBufHandle cxx11_streambuf_create(ReadDelegate read, WriteDelegate write,
-            SeekDelegate seek, FlushDelegate flush);
-
-        [DllImport(LibraryName, CallingConvention = CallConv)]
-        internal static extern Cxx11StreamBufHandle cxx11_streambuf_create_buffer(ReadDelegate read,
-            WriteDelegate write, SeekDelegate seek, FlushDelegate flush, byte[] buffer, uint count);
-
-        [DllImport(LibraryName, CallingConvention = CallConv)]
-        internal static extern int cxx11_streambuf_delete(IntPtr handle);
 
         #endregion
     }

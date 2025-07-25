@@ -6,7 +6,7 @@ using Xunit;
 namespace Cxx11BindingsSharp.Tests
 {
     [Collection("NonParallelTests")]
-    public class ManagedStreamBufShimFileTests
+    public class ManagedC11StreamFileTests
     {
         private const string TestText = "The quick brown fox jumps over the lazy dog";
         private const string FileName = "ManagedStreamBufShimFileTestsFile.txt";
@@ -22,7 +22,7 @@ namespace Cxx11BindingsSharp.Tests
             CreateTestFile();
             using (var sfs = new FileStream(FileName, FileMode.Open, FileAccess.Read))
             {
-                var wrap = new ManagedStreamBufShim(sfs);
+                var wrap = new ManagedC11Stream(sfs);
                 var buffer = new byte[512];
                 var ret = wrap.Read(buffer, 0, buffer.Length);
                 Assert.Equal(TestText.Length, ret);
@@ -37,7 +37,7 @@ namespace Cxx11BindingsSharp.Tests
             CreateTestFile();
             using (var sfs = new FileStream(FileName, FileMode.Open, FileAccess.Read))
             {
-                var wrap = new ManagedStreamBufShim(sfs);
+                var wrap = new ManagedC11Stream(sfs);
                 var buffer = new byte[512];
                 var ret = wrap.Read(buffer, 0, buffer.Length);
                 Assert.Equal(TestText.Length, ret);
@@ -52,7 +52,7 @@ namespace Cxx11BindingsSharp.Tests
             CreateTestFile();
             using (var sfs = new FileStream(FileName, FileMode.Open, FileAccess.Read))
             {
-                var wrap = new ManagedStreamBufShim(sfs);
+                var wrap = new ManagedC11Stream(sfs);
                 Assert.True(wrap.CanRead);
                 Assert.False(wrap.CanWrite);
                 Assert.True(wrap.CanSeek);
@@ -65,7 +65,7 @@ namespace Cxx11BindingsSharp.Tests
             const string path = "dest.txt";
             File.Delete(path);
             var fs = File.OpenWrite(path);
-            var wrap = new ManagedStreamBufShim(fs);
+            var wrap = new ManagedC11Stream(fs);
             var data = Encoding.UTF8.GetBytes("abcd");
             wrap.Write(data, 0, data.Length);
             wrap.Flush();
@@ -79,7 +79,7 @@ namespace Cxx11BindingsSharp.Tests
             CreateTestFile();
             using (var sfs = new FileStream(FileName, FileMode.Open, FileAccess.Read))
             {
-                var wrap = new ManagedStreamBufShim(sfs);
+                var wrap = new ManagedC11Stream(sfs);
                 Assert.True(wrap.CanRead);
                 Assert.False(wrap.CanWrite);
                 Assert.True(wrap.CanSeek);
@@ -91,7 +91,7 @@ namespace Cxx11BindingsSharp.Tests
         {
             using (var sfs = new FileStream(FileName, FileMode.Create, FileAccess.Write))
             {
-                var wrap = new ManagedStreamBufShim(sfs);
+                var wrap = new ManagedC11Stream(sfs);
                 Assert.False(wrap.CanRead);
                 Assert.True(wrap.CanWrite);
                 Assert.True(wrap.CanSeek);
@@ -103,7 +103,7 @@ namespace Cxx11BindingsSharp.Tests
         {
             using (var sfs = new FileStream(FileName, FileMode.OpenOrCreate, FileAccess.ReadWrite))
             {
-                var wrap = new ManagedStreamBufShim(sfs);
+                var wrap = new ManagedC11Stream(sfs);
                 Assert.True(wrap.CanRead);
                 Assert.True(wrap.CanWrite);
                 Assert.True(wrap.CanSeek);
@@ -116,7 +116,7 @@ namespace Cxx11BindingsSharp.Tests
             CreateTestFile();
             using (var sfs = File.OpenRead(FileName))
             {
-                var wrap = new ManagedStreamBufShim(sfs);
+                var wrap = new ManagedC11Stream(sfs);
                 wrap.Seek(0, SeekOrigin.End);
                 var buffer = new byte[10];
                 int read = wrap.Read(buffer, 0, buffer.Length);
@@ -130,14 +130,14 @@ namespace Cxx11BindingsSharp.Tests
             var bytes = Encoding.ASCII.GetBytes(TestText);
             using (var sfs = File.OpenWrite("sfs_rw.txt"))
             {
-                var wrap = new ManagedStreamBufShim(sfs);
+                var wrap = new ManagedC11Stream(sfs);
                 wrap.Write(bytes, 0, bytes.Length);
                 wrap.Flush();
             }
 
             using (var sfs = File.OpenRead("sfs_rw.txt"))
             {
-                var wrap = new ManagedStreamBufShim(sfs);
+                var wrap = new ManagedC11Stream(sfs);
                 var buffer = new byte[bytes.Length];
                 int read = wrap.Read(buffer, 0, buffer.Length);
                 Assert.Equal(bytes.Length, read);
@@ -151,7 +151,7 @@ namespace Cxx11BindingsSharp.Tests
             CreateTestFile(string.Empty);
             using (var sfs = File.OpenRead(FileName))
             {
-                var wrap = new ManagedStreamBufShim(sfs);
+                var wrap = new ManagedC11Stream(sfs);
                 Assert.Equal(0, wrap.Length);
             }
         }
@@ -162,7 +162,7 @@ namespace Cxx11BindingsSharp.Tests
             CreateTestFile();
             using (var sfs = File.OpenRead(FileName))
             {
-                var wrap = new ManagedStreamBufShim(sfs);
+                var wrap = new ManagedC11Stream(sfs);
                 long beyond = wrap.Length + 100;
                 long pos = wrap.Seek(beyond, SeekOrigin.Begin);
                 Assert.Equal(beyond, pos);
@@ -174,7 +174,7 @@ namespace Cxx11BindingsSharp.Tests
         {
             CreateTestFile();
             var sfs = File.OpenRead(FileName);
-            var wrap = new ManagedStreamBufShim(sfs);
+            var wrap = new ManagedC11Stream(sfs);
             wrap.Dispose();
             Assert.Throws<ObjectDisposedException>(() => wrap.ReadByte());
         }
@@ -185,7 +185,7 @@ namespace Cxx11BindingsSharp.Tests
             CreateTestFile();
             using (var sfs = File.OpenRead(FileName))
             {
-                var wrap = new ManagedStreamBufShim(sfs);
+                var wrap = new ManagedC11Stream(sfs);
                 Assert.True(wrap.CanRead);
                 Assert.False(wrap.CanWrite);
                 Assert.True(wrap.CanSeek);
@@ -197,7 +197,7 @@ namespace Cxx11BindingsSharp.Tests
         {
             using (var sfs = File.OpenWrite("sfs_canwrite.txt"))
             {
-                var wrap = new ManagedStreamBufShim(sfs);
+                var wrap = new ManagedC11Stream(sfs);
                 Assert.False(wrap.CanRead);
                 Assert.True(wrap.CanWrite);
                 Assert.True(wrap.CanSeek);
@@ -210,13 +210,13 @@ namespace Cxx11BindingsSharp.Tests
             CreateTestFile();
             using (var sfs = File.OpenRead(FileName))
             {
-                var wrap = new ManagedStreamBufShim(sfs);
+                var wrap = new ManagedC11Stream(sfs);
                 Assert.True(wrap.CanSeek);
             }
 
             using (var sfs = File.OpenWrite("sfs_canseek.txt"))
             {
-                var wrap = new ManagedStreamBufShim(sfs);
+                var wrap = new ManagedC11Stream(sfs);
                 Assert.True(wrap.CanSeek);
             }
         }
@@ -230,7 +230,7 @@ namespace Cxx11BindingsSharp.Tests
             // Truncate
             using (var sfs = File.OpenWrite(FileName))
             {
-                var wrap = new ManagedStreamBufShim(sfs);
+                var wrap = new ManagedC11Stream(sfs);
                 wrap.SetLength(10);
                 Assert.Equal(10, wrap.Length);
             }
@@ -242,7 +242,7 @@ namespace Cxx11BindingsSharp.Tests
             // Extend
             using (var sfs = File.OpenWrite(FileName))
             {
-                var wrap = new ManagedStreamBufShim(sfs);
+                var wrap = new ManagedC11Stream(sfs);
                 wrap.SetLength(20);
                 Assert.Equal(20, wrap.Length);
             }
@@ -259,7 +259,7 @@ namespace Cxx11BindingsSharp.Tests
             CreateTestFile();
             using (var sfs = File.OpenRead(FileName))
             {
-                var wrap = new ManagedStreamBufShim(sfs);
+                var wrap = new ManagedC11Stream(sfs);
                 // Seek to position 4 ('q' in "The quick...")
                 long pos = wrap.Seek(4, SeekOrigin.Begin);
                 Assert.Equal(4, pos);
@@ -278,7 +278,7 @@ namespace Cxx11BindingsSharp.Tests
             // Write
             using (var sfs = File.OpenWrite(unicodeFileName))
             {
-                var wrap = new ManagedStreamBufShim(sfs);
+                var wrap = new ManagedC11Stream(sfs);
                 var bytes = Encoding.UTF8.GetBytes(testContent);
                 wrap.Write(bytes, 0, bytes.Length);
                 wrap.Flush();
@@ -289,7 +289,7 @@ namespace Cxx11BindingsSharp.Tests
             // Read
             using (var sfs = File.OpenRead(unicodeFileName))
             {
-                var wrap = new ManagedStreamBufShim(sfs);
+                var wrap = new ManagedC11Stream(sfs);
                 var buffer = new byte[testContent.Length * 2];
                 int read = wrap.Read(buffer, 0, buffer.Length);
                 string readText = Encoding.UTF8.GetString(buffer, 0, read);
