@@ -8,6 +8,11 @@
         <PackageTags>native;C++11;Stream</PackageTags>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <Version>0.0.0</Version>
+        <Description>Provide a thin layer to wrap a System.IO.Stream in C# to a portable C++ stream (std::streambuf*). Akin to System.Runtime.InteropServices.ComTypes.IStream on windows.</Description>
+        <PackageProjectUrl>https://github.com/dicomstudio/Cxx11BindingsSharp/</PackageProjectUrl>
+        <PackageLicenseUrl>https://github.com/dicomstudio/Cxx11BindingsSharp/blob/main/LICENSE</PackageLicenseUrl>
+        <RepositoryUrl>https://github.com/dicomstudio/Cxx11BindingsSharp.git</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
     </PropertyGroup>
 
     <!-- Dump version for clarity -->
