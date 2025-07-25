@@ -7,7 +7,7 @@ namespace Cxx11BindingsSharp
     /// Dual personality (C# and C++) buffered stream wrapper. Provide a C++ std::streambuf interface for a managed Stream.
     /// Since it derives from <see cref="Stream"/>, it can be used in any place where a <see cref="Stream"/> is expected.
     /// </summary>
-    public sealed class ManagedStreamBufShim : Stream
+    public sealed class ManagedC11Stream : Stream
     {
         // the actual stream we are wrapping
         private readonly Stream _innerStream;
@@ -19,7 +19,7 @@ namespace Cxx11BindingsSharp
         /// Buffered stream wrapper.
         /// </summary>
         /// <param name="stream"></param>
-        public ManagedStreamBufShim(Stream? stream)
+        public ManagedC11Stream(Stream? stream)
         {
             _innerStream = stream ?? throw new ArgumentNullException(nameof(stream));
             _managedStreamBuf = new C11StreamWrapper(FRead, FWrite, FSeek, FFlush, FTrunc);
@@ -102,9 +102,9 @@ namespace Cxx11BindingsSharp
             base.Dispose(disposing);
         }
 
-        public static implicit operator C11StreamWrapper(ManagedStreamBufShim managedStreamBufShim)
+        public static implicit operator C11StreamWrapper(ManagedC11Stream managedC11Stream)
         {
-            return managedStreamBufShim._managedStreamBuf;
+            return managedC11Stream._managedStreamBuf;
         }
 
         public override void Flush()
