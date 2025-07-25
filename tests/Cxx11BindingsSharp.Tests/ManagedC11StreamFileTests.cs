@@ -11,28 +11,13 @@ namespace Cxx11BindingsSharp.Tests
         private const string TestText = "The quick brown fox jumps over the lazy dog";
         private const string FileName = "ManagedStreamBufShimFileTestsFile.txt";
 
-        private void CreateTestFile(string? content = null)
+        private static void CreateTestFile(string? content = null)
         {
             File.WriteAllText(FileName, content ?? TestText, Encoding.ASCII);
         }
 
         [Fact]
         public void Read_ShouldSucceed()
-        {
-            CreateTestFile();
-            using (var sfs = new FileStream(FileName, FileMode.Open, FileAccess.Read))
-            {
-                var wrap = new ManagedC11Stream(sfs);
-                var buffer = new byte[512];
-                var ret = wrap.Read(buffer, 0, buffer.Length);
-                Assert.Equal(TestText.Length, ret);
-                var data = Encoding.UTF8.GetBytes(TestText);
-                Assert.Equal(data, buffer[..ret]);
-            }
-        }
-
-        [Fact]
-        public void Read_ShouldSucceed2()
         {
             CreateTestFile();
             using (var sfs = new FileStream(FileName, FileMode.Open, FileAccess.Read))
@@ -119,7 +104,7 @@ namespace Cxx11BindingsSharp.Tests
                 var wrap = new ManagedC11Stream(sfs);
                 wrap.Seek(0, SeekOrigin.End);
                 var buffer = new byte[10];
-                int read = wrap.Read(buffer, 0, buffer.Length);
+                var read = wrap.Read(buffer, 0, buffer.Length);
                 Assert.Equal(0, read);
             }
         }
@@ -139,7 +124,7 @@ namespace Cxx11BindingsSharp.Tests
             {
                 var wrap = new ManagedC11Stream(sfs);
                 var buffer = new byte[bytes.Length];
-                int read = wrap.Read(buffer, 0, buffer.Length);
+                var read = wrap.Read(buffer, 0, buffer.Length);
                 Assert.Equal(bytes.Length, read);
                 Assert.Equal(bytes, buffer);
             }
@@ -163,8 +148,8 @@ namespace Cxx11BindingsSharp.Tests
             using (var sfs = File.OpenRead(FileName))
             {
                 var wrap = new ManagedC11Stream(sfs);
-                long beyond = wrap.Length + 100;
-                long pos = wrap.Seek(beyond, SeekOrigin.Begin);
+                var beyond = wrap.Length + 100;
+                var pos = wrap.Seek(beyond, SeekOrigin.Begin);
                 Assert.Equal(beyond, pos);
             }
         }
@@ -261,10 +246,10 @@ namespace Cxx11BindingsSharp.Tests
             {
                 var wrap = new ManagedC11Stream(sfs);
                 // Seek to position 4 ('q' in "The quick...")
-                long pos = wrap.Seek(4, SeekOrigin.Begin);
+                var pos = wrap.Seek(4, SeekOrigin.Begin);
                 Assert.Equal(4, pos);
 
-                int b = wrap.ReadByte();
+                var b = wrap.ReadByte();
                 Assert.Equal((int) 'q', b);
             }
         }
@@ -272,8 +257,8 @@ namespace Cxx11BindingsSharp.Tests
         [Fact]
         public void UnicodeFileName_ReadWrite_ShouldSucceed()
         {
-            string unicodeFileName = "测试_файл_🚀.txt";
-            string testContent = "Unicode filename test content";
+            const string unicodeFileName = "测试_файл_🚀.txt";
+            const string testContent = "Unicode filename test content";
 
             // Write
             using (var sfs = File.OpenWrite(unicodeFileName))
@@ -291,8 +276,8 @@ namespace Cxx11BindingsSharp.Tests
             {
                 var wrap = new ManagedC11Stream(sfs);
                 var buffer = new byte[testContent.Length * 2];
-                int read = wrap.Read(buffer, 0, buffer.Length);
-                string readText = Encoding.UTF8.GetString(buffer, 0, read);
+                var read = wrap.Read(buffer, 0, buffer.Length);
+                var readText = Encoding.UTF8.GetString(buffer, 0, read);
                 Assert.Equal(testContent, readText);
             }
 

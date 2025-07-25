@@ -68,7 +68,7 @@ namespace Cxx11BindingsSharp.Tests
             Assert.Equal(data.Length, wrap.Position);
             wrap.Position = 0;
             var buffer = new byte[3];
-            int read = wrap.Read(buffer, 0, 3);
+            var read = wrap.Read(buffer, 0, 3);
             Assert.Equal(3, read);
             Assert.Equal(data, buffer);
         }
