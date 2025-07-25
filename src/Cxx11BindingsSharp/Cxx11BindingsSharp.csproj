@@ -13,6 +13,10 @@
         <PackageLicenseUrl>https://github.com/dicomstudio/Cxx11BindingsSharp/blob/main/LICENSE</PackageLicenseUrl>
         <RepositoryUrl>https://github.com/dicomstudio/Cxx11BindingsSharp.git</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
+        <!-- required for the symbols stuff -->
+        <IncludeSymbols>true</IncludeSymbols>
+        <IncludeSource>true</IncludeSource>
+        <DebugType>portable</DebugType>
     </PropertyGroup>
 
     <!-- Dump version for clarity -->
