@@ -4,6 +4,8 @@
         <TargetFrameworks>net6.0;net8.0</TargetFrameworks>
         <Platforms>AnyCPU;x64;x86</Platforms>
         <Nullable>enable</Nullable>
+        <Authors>DicomStudio</Authors>
+        <PackageTags>native;C++11;Stream</PackageTags>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <Version>0.0.0</Version>
     </PropertyGroup>
@@ -31,7 +33,9 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <None Include="..\..\README.md" Pack="true" PackagePath="/"/>
+        <None Include="../../target/linux-amd64/Cxx11Bindings.so" Pack="true" PackagePath="runtimes/linux-x64/native" />
+        <None Include="../../target/windows-amd64/Cxx11Bindings.dll" Pack="true" PackagePath="runtimes/win-x64/native" />
+        <None Include="../../README.md" Pack="true" PackagePath="/"/>
     </ItemGroup>
 
     <ItemGroup>
