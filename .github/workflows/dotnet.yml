@@ -115,10 +115,12 @@ jobs:
       - name: Extract version from tag
         run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
       - name: Nuget pack
-        run: dotnet pack -p:Version=${{ env.VERSION }} --configuration Release
+        run: dotnet pack -p:Version=${{ env.VERSION }} --configuration Release --include-symbols --include-source
       - name: Add GitHub NuGet source
         run: dotnet nuget add source --username ${{ github.actor }} --password ${{ secrets.GITHUB_TOKEN }} --store-password-in-clear-text --name github "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json"
       - name: Push NuGet package
         run: dotnet nuget push "src/Cxx11BindingsSharp/bin/Release/*.nupkg" --source "github"
       - name: Push NuGet package to nuget.org
-        run: dotnet nuget push "src/Cxx11BindingsSharp/bin/Release/*.nupkg" --api-key ${{ secrets.NUGET_API_KEY }} --source "https://api.nuget.org/v3/index.json"
+        run: |
+          dotnet nuget push "src/Cxx11BindingsSharp/bin/Release/*.nupkg" --api-key ${{ secrets.NUGET_API_KEY }} --source "https://api.nuget.org/v3/index.json"
+          dotnet nuget push "src/Cxx11BindingsSharp/bin/Release/*.snupkg" --api-key ${{ secrets.NUGET_API_KEY }} --source "https://api.nuget.org/v3/index.json"
