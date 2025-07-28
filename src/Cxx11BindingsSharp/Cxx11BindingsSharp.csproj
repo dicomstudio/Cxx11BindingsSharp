@@ -16,6 +16,7 @@
         <Copyright>Copyright 2025 DicomStudio</Copyright>
         <!-- required for the symbols stuff -->
         <IncludeSymbols>true</IncludeSymbols>
+        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
         <IncludeSource>true</IncludeSource>
         <DebugType>portable</DebugType>
     </PropertyGroup>
