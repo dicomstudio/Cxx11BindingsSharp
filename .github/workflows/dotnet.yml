@@ -121,6 +121,6 @@ jobs:
       - name: Push NuGet package
         run: dotnet nuget push "src/Cxx11BindingsSharp/bin/Release/*.nupkg" --source "github"
       - name: Push NuGet package to nuget.org
-        run: |
-          dotnet nuget push "src/Cxx11BindingsSharp/bin/Release/*.nupkg" --api-key ${{ secrets.NUGET_API_KEY }} --source "https://api.nuget.org/v3/index.json"
-          dotnet nuget push "src/Cxx11BindingsSharp/bin/Release/*.snupkg" --api-key ${{ secrets.NUGET_API_KEY }} --source "https://api.nuget.org/v3/index.json"
+        run: dotnet nuget push "src/Cxx11BindingsSharp/bin/Release/*.nupkg" --api-key ${{ secrets.NUGET_API_KEY }} --source "https://api.nuget.org/v3/index.json"
+      - name: Push NuGet source package to nuget.org
+        run: dotnet nuget push "src/Cxx11BindingsSharp/bin/Release/*.snupkg" --skip-duplicate --api-key ${{ secrets.NUGET_API_KEY }} --source "https://api.nuget.org/v3/index.json"
