@@ -54,7 +54,7 @@ namespace Cxx11BindingsSharp.Tests
             var data = Encoding.UTF8.GetBytes("abcd");
             wrap.Write(data, 0, data.Length);
             wrap.Flush();
-            var length = new System.IO.FileInfo(path).Length;
+            var length = new FileInfo(path).Length;
             Assert.Equal(data.Length, length);
         }
 
