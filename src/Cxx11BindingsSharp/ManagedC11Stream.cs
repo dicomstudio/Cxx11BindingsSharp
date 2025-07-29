@@ -4,8 +4,11 @@ using System.IO;
 namespace Cxx11BindingsSharp
 {
     /// <summary>
-    /// Dual personality (C# and C++) buffered stream wrapper. Provide a C++ std::streambuf interface for a managed Stream.
+    /// Dual personality (C# and C++) stream wrapper.
+    /// Intention is to provide a C11 or C++11 std::streambuf interface of a managed Stream to a native library with minimal overhead.
     /// Since it derives from <see cref="Stream"/>, it can be used in any place where a <see cref="Stream"/> is expected.
+    /// Intended use is for library author to expose a regular `System.IO.Stream` interface, but internally use a ManagedC11Stream
+    /// as an implementation detail.
     /// </summary>
     public sealed class ManagedC11Stream : Stream
     {
@@ -13,7 +16,7 @@ namespace Cxx11BindingsSharp
         private readonly Stream _innerStream;
 
         // the managed stream handle
-        private readonly C11StreamWrapper _managedStreamBuf;
+        private readonly C11StreamBufHandle _c11StreamBuf;
 
         /// <summary>
         /// Buffered stream wrapper.
@@ -22,14 +25,16 @@ namespace Cxx11BindingsSharp
         public ManagedC11Stream(Stream? stream)
         {
             _innerStream = stream ?? throw new ArgumentNullException(nameof(stream));
-            _managedStreamBuf = new C11StreamWrapper(FRead, FWrite, FSeek, FFlush, FTrunc);
+            // FIXME: should buffering depend on the inner stream's buffering?
+            _c11StreamBuf = new C11StreamBufHandle(FRead, FWrite, FSeek, FFlush, FTrunc);
         }
 
-        private int FRead(byte[] buffer, uint count)
+        private int FRead(byte[] buffer, int count)
         {
             try
             {
-                return _innerStream.Read(buffer, 0, (int) count);
+                // may return a short-read
+                return _innerStream.Read(buffer, 0, count);
             }
             catch (Exception ex)
             {
@@ -37,12 +42,12 @@ namespace Cxx11BindingsSharp
             }
         }
 
-        private int FWrite(byte[] buffer, uint count)
+        private int FWrite(byte[] buffer, int count)
         {
             try
             {
-                _innerStream.Write(buffer, 0, (int) count);
-                return (int) count;
+                _innerStream.Write(buffer, 0, count);
+                return count;
             }
             catch (Exception ex)
             {
@@ -76,12 +81,12 @@ namespace Cxx11BindingsSharp
             }
         }
 
-        private int FTrunc(ulong length)
+        private long FTrunc(long length)
         {
             try
             {
-                _innerStream.SetLength((long) length);
-                return 0;
+                _innerStream.SetLength(length);
+                return length;
             }
             catch (Exception ex)
             {
@@ -95,16 +100,16 @@ namespace Cxx11BindingsSharp
             {
                 // Dispose managed resources here
                 _innerStream.Dispose();
-                _managedStreamBuf.Dispose();
+                _c11StreamBuf.Dispose();
             }
 
             // Dispose unmanaged resources here (if any)
             base.Dispose(disposing);
         }
 
-        public static implicit operator C11StreamWrapper(ManagedC11Stream managedC11Stream)
+        public static implicit operator C11StreamBufHandle(ManagedC11Stream managedC11Stream)
         {
-            return managedC11Stream._managedStreamBuf;
+            return managedC11Stream._c11StreamBuf;
         }
 
         public override void Flush()

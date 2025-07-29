@@ -1,7 +1,18 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup Condition="'$(VisualStudioVersion)'=='16.0'">
+        <TargetFramework>net6.0</TargetFramework>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(VisualStudioVersion)'=='17.0'">
+        <TargetFrameworks>net6.0;net8.0</TargetFrameworks>
+    </PropertyGroup>
+
+    <!-- Dump version for clarity -->
+    <Target Name="TestVersion" AfterTargets="build">
+        <Message Text="version=>$(VisualStudioVersion)" Importance="high"/>
+    </Target>
 
     <PropertyGroup>
-        <TargetFrameworks>net6.0;net8.0</TargetFrameworks>
         <Platforms>AnyCPU;x64;x86</Platforms>
         <Nullable>enable</Nullable>
         <Authors>DicomStudio</Authors>
@@ -21,44 +32,12 @@
         <DebugType>portable</DebugType>
     </PropertyGroup>
 
-    <!-- Dump version for clarity -->
-    <Target Name="TestVersion" AfterTargets="build">
-        <Message Text="RuntimeIdentifier=>$(RuntimeIdentifier)" Importance="high"/>
-        <Message Text="OS=>$(OS)" Importance="high"/>
-    </Target>
-
-    <PropertyGroup Condition="'$(RuntimeIdentifier)' == 'win-x64'">
-        <DefineConstants>WINDOWS</DefineConstants>
-    </PropertyGroup>
-
-    <PropertyGroup Condition="'$(OS)' == 'Windows_NT'">
-        <DefineConstants>WINDOWS</DefineConstants>
-    </PropertyGroup>
-
-    <PropertyGroup Condition="'$(RuntimeIdentifier)' == 'linux-x64'">
-        <DefineConstants>LINUX</DefineConstants>
-    </PropertyGroup>
-
-    <PropertyGroup Condition="'$(OS)' == 'Unix'">
-        <DefineConstants>LINUX</DefineConstants>
-    </PropertyGroup>
 
     <ItemGroup>
-        <!-- pick the linux header file since on ubuntu and install it in the shared location -->
-        <None Include="../../target/linux-amd64/include/cxx11bindings.h" Pack="true" PackagePath="build/native/include" />
-        <None Include="../../target/linux-amd64/lib/Cxx11Bindings.so" Pack="true" PackagePath="runtimes/linux-x64/native" />
-        <None Include="../../target/windows-amd64/lib/Cxx11Bindings.dll" Pack="true" PackagePath="runtimes/win-x64/native" />
+        <None Include="../../native/cxx11bindings.h" Pack="true" PackagePath="build/native/include"/>
+        <None Include="../../native/cxx11bindings.hxx" Pack="true" PackagePath="build/native/include"/>
+        <None Include="../../native/cxx11exceptions.hxx" Pack="true" PackagePath="build/native/include"/>
         <None Include="../../README.md" Pack="true" PackagePath="/"/>
-    </ItemGroup>
-
-    <ItemGroup>
-        <!-- https://stackoverflow.com/questions/43412140/csproj-copy-files-depending-on-operating-system -->
-        <ProjectReference Include="..\..\native\Cxx11Bindings.vcxproj" Condition="$([MSBuild]::IsOSPlatform('Windows')) and Exists('..\..\native\Cxx11Bindings.vcxproj')">
-            <!-- https://stackoverflow.com/questions/5107694/how-do-i-add-a-reference-to-an-unmanaged-c-project-called-by-a-c-sharp-project -->
-            <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-            <OutputItemType>Content</OutputItemType>
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </ProjectReference>
     </ItemGroup>
 
     <ItemGroup>

@@ -1,18 +1,47 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFrameworks>net6.0;net8.0</TargetFrameworks>
-    <Platforms>AnyCPU;x64;x86</Platforms>
-    <Nullable>enable</Nullable>
-  </PropertyGroup>
+    <PropertyGroup Condition="'$(VisualStudioVersion)'=='16.0'">
+        <TargetFramework>net6.0</TargetFramework>
+    </PropertyGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\..\src\Cxx11BindingsSharp\Cxx11BindingsSharp.csproj" />
-  </ItemGroup>
+    <PropertyGroup Condition="'$(VisualStudioVersion)'=='17.0'">
+        <TargetFrameworks>net6.0;net8.0</TargetFrameworks>
+    </PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
-    <PackageReference Include="xunit" Version="2.6.3" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="2.5.5" />
-  </ItemGroup>
+    <!-- Dump version for clarity -->
+    <Target Name="TestVersion" AfterTargets="build">
+        <Message Text="version=>$(VisualStudioVersion)" Importance="high"/>
+    </Target>
+
+    <!-- common stuff -->
+    <PropertyGroup>
+        <Platforms>AnyCPU;x64;x86</Platforms>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\src\Cxx11BindingsSharp\Cxx11BindingsSharp.csproj"/>
+    </ItemGroup>
+
+    <!-- Dump version for clarity -->
+    <Target Name="TestVersion" AfterTargets="build">
+        <Message Text="RuntimeIdentifier=>$(RuntimeIdentifier)" Importance="high"/>
+        <Message Text="OS=>$(OS)" Importance="high"/>
+    </Target>
+
+    <ItemGroup>
+        <!-- https://stackoverflow.com/questions/43412140/csproj-copy-files-depending-on-operating-system -->
+        <ProjectReference Include="..\..\native\Cxx11BindingsTests.vcxproj" Condition="$([MSBuild]::IsOSPlatform('Windows')) and Exists('..\..\native\Cxx11BindingsTests.vcxproj')">
+            <!-- https://stackoverflow.com/questions/5107694/how-do-i-add-a-reference-to-an-unmanaged-c-project-called-by-a-c-sharp-project -->
+            <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+            <OutputItemType>Content</OutputItemType>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </ProjectReference>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0"/>
+        <PackageReference Include="xunit" Version="2.6.3"/>
+        <PackageReference Include="xunit.runner.visualstudio" Version="2.5.5"/>
+    </ItemGroup>
 </Project>
