@@ -4,20 +4,12 @@ using Microsoft.Win32.SafeHandles;
 
 namespace Cxx11BindingsSharp
 {
+    // The main struct that represents the C11 stream interface.
     [StructLayout(LayoutKind.Sequential)]
-    internal struct ManagedBuffer
+    internal struct C11Stream
     {
-        public IntPtr buf_read;
-        public IntPtr buf_write;
-        public IntPtr data;
-        public UIntPtr size;
-    }
-
-    // The main struct that represents the C11 streambuf interface.
-    [StructLayout(LayoutKind.Sequential)]
-    internal struct C11StreamBuf
-    {
-        [MarshalAs(UnmanagedType.Struct)] public ManagedBuffer managedBuffer;
+        public IntPtr read;
+        public IntPtr write;
         public IntPtr seek;
         public IntPtr flush;
         public IntPtr trunc;
@@ -29,10 +21,10 @@ namespace Cxx11BindingsSharp
         #region c11 stream
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        public delegate int BufReadDelegate(int size);
+        public delegate int BufReadDelegate(IntPtr buffer, int size);
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        public delegate int BufWriteDelegate(int size);
+        public delegate int BufWriteDelegate(IntPtr buffer, int size);
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         public delegate int ReadDelegate([Out] byte[] buffer, int size);
@@ -58,36 +50,27 @@ namespace Cxx11BindingsSharp
     /// </summary>
     public sealed class C11StreamBufHandle : SafeHandleMinusOneIsInvalid
     {
-        private readonly byte[] _buffer;
-        private GCHandle _bufferHandle;
+        private byte[] _buffer;
 
         public C11StreamBufHandle(NativeLibrary.ReadDelegate readFn, NativeLibrary.WriteDelegate writeFn,
             NativeLibrary.SeekDelegate seekFn, NativeLibrary.FlushDelegate flushFn,
             NativeLibrary.TruncDelegate truncFn, int buffering = 4096) : base(ownsHandle: true)
         {
             _buffer = new byte[buffering];
-            // To avoid using `unsafe` we add an extra layer of indirection:
-            _bufferHandle = GCHandle.Alloc(_buffer, GCHandleType.Pinned);
+            // To avoid using `unsafe`, we add an extra layer of indirection:
             NativeLibrary.BufReadDelegate bufReadFn = BufRead;
             NativeLibrary.BufWriteDelegate bufWriteFn = BufWrite;
-            var c11StreamBufHandle = new C11StreamBuf
+            var c11StreamHandle = new C11Stream
             {
-                managedBuffer = new ManagedBuffer
-                {
-                    // cannot use readFn delegate directly since the byte[] is not valid in the managed code context
-                    buf_read = Marshal.GetFunctionPointerForDelegate(bufReadFn),
-                    // FIXME: it should be possible to use the same delegate for write
-                    buf_write = Marshal.GetFunctionPointerForDelegate(bufWriteFn),
-                    data = _bufferHandle.AddrOfPinnedObject(),
-                    size = (UIntPtr) _buffer.Length
-                },
+                read = Marshal.GetFunctionPointerForDelegate(bufReadFn),
+                write = Marshal.GetFunctionPointerForDelegate(bufWriteFn),
                 seek = Marshal.GetFunctionPointerForDelegate(seekFn),
                 flush = Marshal.GetFunctionPointerForDelegate(flushFn),
                 trunc = Marshal.GetFunctionPointerForDelegate(truncFn)
             };
             // Initialize unmanaged memory to hold the struct.
-            handle = Marshal.AllocHGlobal(Marshal.SizeOf(c11StreamBufHandle));
-            Marshal.StructureToPtr(c11StreamBufHandle, handle, false);
+            handle = Marshal.AllocHGlobal(Marshal.SizeOf(c11StreamHandle));
+            Marshal.StructureToPtr(c11StreamHandle, handle, false);
             // keep external delegates alive:
             Read = readFn;
             Write = writeFn;
@@ -99,18 +82,21 @@ namespace Cxx11BindingsSharp
             BufWriteDelegate = bufWriteFn;
         }
 
+        private NativeLibrary.BufReadDelegate BufReadDelegate { get; set; }
         private NativeLibrary.BufWriteDelegate BufWriteDelegate { get; set; }
 
-        private NativeLibrary.BufReadDelegate BufReadDelegate { get; set; }
-
-        private int BufRead(int count)
+        private int BufRead(IntPtr outBuffer, int count)
         {
+            Array.Resize(ref _buffer, count);
             var ret = Read(_buffer, count);
+            Marshal.Copy(_buffer, 0, outBuffer, count);
             return ret;
         }
 
-        private int BufWrite(int count)
+        private int BufWrite(IntPtr inBuffer, int count)
         {
+            Array.Resize(ref _buffer, count);
+            Marshal.Copy(inBuffer, _buffer, 0, count);
             var ret = Write(_buffer, count);
             return ret;
         }
@@ -127,7 +113,6 @@ namespace Cxx11BindingsSharp
 
         protected override bool ReleaseHandle()
         {
-            _bufferHandle.Free();
             Marshal.FreeHGlobal(handle);
             return true;
         }
