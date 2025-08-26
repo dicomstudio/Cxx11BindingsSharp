@@ -1,12 +1,68 @@
 # Cxx11BindingsSharp
 
+## Introduction
+
 Provide a thin layer to wrap a `System.IO.Stream` in C# to a portable C++ stream (`std::streambuf`).
 The intermediate C layer is exposed and can be used directly in a C11 project.
 The custom streambuf implementation simply uses the portable C layer to call back into the C# stream.
 
 This is somewhat related to `System.Runtime.InteropServices.ComTypes.IStream` on windows.
 
-See:
+## Usage in your library
+
+```
+public void AcmeConvert(System.IO.Stream src, System.IO.Stream dst)
+{
+  var srcWrap = new ManagedC11Stream(src);
+  var dstWrap = new ManagedC11Stream(dst);
+  if (NativeService.acme_convert(srcWrap, dstWrap)<0)
+  {
+    throw new ArgumentException($"Cannot convert");
+  }
+}
+```
+
+Where:
+
+```
+[DllImport(NativeLibraryName, CallingConvention = CallingConvention.Cdecl)]
+internal static extern int acme_convert(C11StreamBufHandle src, C11StreamBufHandle dst);
+```
+
+On the C11 side, export your function as:
+
+```
+ACME_EXPORT int acme_convert(c11_stream* src, c11_stream* dst);
+```
+
+At this point you can either re-use one of the existing `std::streambuf` wrappers, or directly use the `c11_stream`
+interface if you prefer to work with C-style APIs.
+
+## Implementation details
+
+The stream abstraction is simply defined with a set of five function pointers:
+
+```
+struct c11_stream {
+  read_fn read;
+  write_fn write;
+  seek_fn seek;
+  flush_fn flush;
+  trunc_fn trunc;
+};
+```
+
+Where function declarations are:
+
+```
+typedef int32_t (*read_fn)(byte* buffer, int32_t count);
+typedef int32_t (*write_fn)(const byte* buffer, int32_t count);
+typedef int64_t (*seek_fn)(int64_t off, int dir);
+typedef int (*flush_fn)(void);
+typedef int64_t (*trunc_fn)(int64_t size);
+```
+
+## See:
 
 * http://msdn.microsoft.com/en-us/library/system.runtime.interopservices.comtypes.istream.aspx
 * https://stackoverflow.com/questions/6601355/passing-an-fstream-or-equivalent-from-c-sharp-to-c-through-cli
