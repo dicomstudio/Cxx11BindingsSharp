@@ -11,6 +11,7 @@ This is somewhat related to `System.Runtime.InteropServices.ComTypes.IStream` on
 ## Usage in your library
 
 ```
+using Cxx11BindingsSharp;
 public void AcmeConvert(System.IO.Stream src, System.IO.Stream dst)
 {
   var srcWrap = new ManagedC11Stream(src);
@@ -26,7 +27,7 @@ Where:
 
 ```
 [DllImport(NativeLibraryName, CallingConvention = CallingConvention.Cdecl)]
-internal static extern int acme_convert(C11StreamBufHandle src, C11StreamBufHandle dst);
+internal static extern int acme_convert(C11StreamHandle src, C11StreamHandle dst);
 ```
 
 On the C11 side, export your function as:

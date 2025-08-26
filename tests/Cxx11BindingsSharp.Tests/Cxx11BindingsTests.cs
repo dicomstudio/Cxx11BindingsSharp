@@ -14,19 +14,19 @@ namespace Cxx11BindingsSharp.Tests
         private const CallingConvention CallConv = CallingConvention.Cdecl;
 
         [DllImport(LibraryName, CallingConvention = CallConv)]
-        internal static extern int c11_stream_read(C11StreamBufHandle handle, [Out] byte[] buffer, int length);
+        internal static extern int c11_stream_read(C11StreamHandle handle, [Out] byte[] buffer, int length);
 
         [DllImport(LibraryName, CallingConvention = CallConv)]
-        internal static extern int c11_stream_write(C11StreamBufHandle handle, [In] byte[] buffer, int length);
+        internal static extern int c11_stream_write(C11StreamHandle handle, [In] byte[] buffer, int length);
 
         [DllImport(LibraryName, CallingConvention = CallConv)]
-        internal static extern long c11_stream_seek(C11StreamBufHandle handle, long offset, SeekOrigin dir);
+        internal static extern long c11_stream_seek(C11StreamHandle handle, long offset, SeekOrigin dir);
 
         [DllImport(LibraryName, CallingConvention = CallConv)]
-        internal static extern int c11_stream_flush(C11StreamBufHandle handle);
+        internal static extern int c11_stream_flush(C11StreamHandle handle);
 
         [DllImport(LibraryName, CallingConvention = CallConv)]
-        internal static extern int c11_stream_trunc(C11StreamBufHandle handle, long size);
+        internal static extern int c11_stream_trunc(C11StreamHandle handle, long size);
 
         #endregion
     }

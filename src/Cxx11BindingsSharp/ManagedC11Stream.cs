@@ -16,7 +16,7 @@ namespace Cxx11BindingsSharp
         private readonly Stream _innerStream;
 
         // the managed stream handle
-        private readonly C11StreamBufHandle _c11StreamBuf;
+        private readonly C11StreamHandle _c11Stream;
 
         /// <summary>
         /// Buffered stream wrapper.
@@ -26,7 +26,7 @@ namespace Cxx11BindingsSharp
         {
             _innerStream = stream ?? throw new ArgumentNullException(nameof(stream));
             // FIXME: should buffering depend on the inner stream's buffering?
-            _c11StreamBuf = new C11StreamBufHandle(FRead, FWrite, FSeek, FFlush, FTrunc);
+            _c11Stream = new C11StreamHandle(FRead, FWrite, FSeek, FFlush, FTrunc);
         }
 
         private int FRead(byte[] buffer, int count)
@@ -100,16 +100,16 @@ namespace Cxx11BindingsSharp
             {
                 // Dispose managed resources here
                 _innerStream.Dispose();
-                _c11StreamBuf.Dispose();
+                _c11Stream.Dispose();
             }
 
             // Dispose unmanaged resources here (if any)
             base.Dispose(disposing);
         }
 
-        public static implicit operator C11StreamBufHandle(ManagedC11Stream managedC11Stream)
+        public static implicit operator C11StreamHandle(ManagedC11Stream managedC11Stream)
         {
-            return managedC11Stream._c11StreamBuf;
+            return managedC11Stream._c11Stream;
         }
 
         public override void Flush()
