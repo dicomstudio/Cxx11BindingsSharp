@@ -15,16 +15,23 @@ namespace Cxx11BindingsSharp
         public IntPtr trunc;
     }
 
+    public enum SeekDirs
+    {
+        Begin = 0,
+        Current = 1,
+        End = 2,
+    }
+
     // The actual callbacks that will be used by the native library. They must be public for re-use.
     public static class NativeLibrary
     {
         #region c11 stream
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        public delegate int BufReadDelegate(IntPtr buffer, int size);
+        internal delegate int BufReadDelegate(IntPtr buffer, int size);
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        public delegate int BufWriteDelegate(IntPtr buffer, int size);
+        internal delegate int BufWriteDelegate(IntPtr buffer, int size);
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         public delegate int ReadDelegate([Out] byte[] buffer, int size);
@@ -33,13 +40,13 @@ namespace Cxx11BindingsSharp
         public delegate int WriteDelegate([In] byte[] buffer, int size);
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        public delegate long SeekDelegate(long off, int dir);
+        public delegate long SeekDelegate(long offset, int seekDir);
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         public delegate int FlushDelegate();
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        public delegate long TruncDelegate(long length);
+        public delegate long TruncDelegate(long newSize);
 
         #endregion
     }
@@ -52,9 +59,9 @@ namespace Cxx11BindingsSharp
     {
         private byte[] _buffer;
 
-        public C11StreamHandle(NativeLibrary.ReadDelegate readFn, NativeLibrary.WriteDelegate writeFn,
-            NativeLibrary.SeekDelegate seekFn, NativeLibrary.FlushDelegate flushFn,
-            NativeLibrary.TruncDelegate truncFn, int buffering = 4096) : base(ownsHandle: true)
+        public C11StreamHandle(NativeLibrary.ReadDelegate? readFn, NativeLibrary.WriteDelegate? writeFn,
+            NativeLibrary.SeekDelegate? seekFn, NativeLibrary.FlushDelegate? flushFn,
+            NativeLibrary.TruncDelegate? truncFn, int buffering = 4096) : base(ownsHandle: true)
         {
             _buffer = new byte[buffering];
             // To avoid using `unsafe`, we add an extra layer of indirection:
@@ -62,11 +69,11 @@ namespace Cxx11BindingsSharp
             NativeLibrary.BufWriteDelegate bufWriteFn = BufWrite;
             var c11StreamHandle = new C11Stream
             {
-                read = Marshal.GetFunctionPointerForDelegate(bufReadFn),
-                write = Marshal.GetFunctionPointerForDelegate(bufWriteFn),
-                seek = Marshal.GetFunctionPointerForDelegate(seekFn),
-                flush = Marshal.GetFunctionPointerForDelegate(flushFn),
-                trunc = Marshal.GetFunctionPointerForDelegate(truncFn)
+                read = readFn == null ? IntPtr.Zero : Marshal.GetFunctionPointerForDelegate(bufReadFn),
+                write = writeFn == null ? IntPtr.Zero : Marshal.GetFunctionPointerForDelegate(bufWriteFn),
+                seek = seekFn == null ? IntPtr.Zero : Marshal.GetFunctionPointerForDelegate(seekFn),
+                flush = flushFn == null ? IntPtr.Zero : Marshal.GetFunctionPointerForDelegate(flushFn),
+                trunc = truncFn == null ? IntPtr.Zero : Marshal.GetFunctionPointerForDelegate(truncFn)
             };
             // Initialize unmanaged memory to hold the struct.
             handle = Marshal.AllocHGlobal(Marshal.SizeOf(c11StreamHandle));
@@ -87,29 +94,43 @@ namespace Cxx11BindingsSharp
 
         private int BufRead(IntPtr outBuffer, int count)
         {
-            Array.Resize(ref _buffer, count);
-            var ret = Read(_buffer, count);
-            Marshal.Copy(_buffer, 0, outBuffer, count);
-            return ret;
+            try
+            {
+                Array.Resize(ref _buffer, count);
+                var ret = Read!(_buffer, count);
+                Marshal.Copy(_buffer, 0, outBuffer, count);
+                return ret;
+            }
+            catch (Exception ex)
+            {
+                return ex.HResult;
+            }
         }
 
         private int BufWrite(IntPtr inBuffer, int count)
         {
-            Array.Resize(ref _buffer, count);
-            Marshal.Copy(inBuffer, _buffer, 0, count);
-            var ret = Write(_buffer, count);
-            return ret;
+            try
+            {
+                Array.Resize(ref _buffer, count);
+                Marshal.Copy(inBuffer, _buffer, 0, count);
+                var ret = Write!(_buffer, count);
+                return ret;
+            }
+            catch (Exception ex)
+            {
+                return ex.HResult;
+            }
         }
 
-        internal NativeLibrary.TruncDelegate Trunc { get; set; }
+        internal NativeLibrary.TruncDelegate? Trunc { get; set; }
 
-        internal NativeLibrary.FlushDelegate Flush { get; set; }
+        internal NativeLibrary.FlushDelegate? Flush { get; set; }
 
-        internal NativeLibrary.SeekDelegate Seek { get; set; }
+        internal NativeLibrary.SeekDelegate? Seek { get; set; }
 
-        internal NativeLibrary.WriteDelegate Write { get; set; }
+        internal NativeLibrary.WriteDelegate? Write { get; set; }
 
-        internal NativeLibrary.ReadDelegate Read { get; set; }
+        internal NativeLibrary.ReadDelegate? Read { get; set; }
 
         protected override bool ReleaseHandle()
         {

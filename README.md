@@ -4,11 +4,13 @@
 
 Provide a thin layer to wrap a `System.IO.Stream` in C# to a portable C++ stream (`std::streambuf`).
 The intermediate C layer is exposed and can be used directly in a C11 project.
-The custom streambuf implementation simply uses the portable C layer to call back into the C# stream.
+The custom `std::streambuf` implementation simply uses the portable C layer to call back into the C# stream.
 
 This is somewhat related to `System.Runtime.InteropServices.ComTypes.IStream` on windows.
 
-## Usage in your library
+## Typical usage in your library
+
+In your C# library, you can now write something like:
 
 ```
 using Cxx11BindingsSharp;
@@ -23,7 +25,9 @@ public void AcmeConvert(System.IO.Stream src, System.IO.Stream dst)
 }
 ```
 
-Where:
+This will expose a C# Stream-like interface to your C11 library.
+
+The only requirement is the following P/Invoke declaration in your C# code:
 
 ```
 [DllImport(NativeLibraryName, CallingConvention = CallingConvention.Cdecl)]

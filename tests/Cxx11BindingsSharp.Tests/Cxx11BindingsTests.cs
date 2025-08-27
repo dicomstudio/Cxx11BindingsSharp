@@ -13,20 +13,20 @@ namespace Cxx11BindingsSharp.Tests
         private const string LibraryName = "Cxx11BindingsTests";
         private const CallingConvention CallConv = CallingConvention.Cdecl;
 
-        [DllImport(LibraryName, CallingConvention = CallConv)]
+        [DllImport(LibraryName, CallingConvention = CallConv, ExactSpelling = true)]
         internal static extern int c11_stream_read(C11StreamHandle handle, [Out] byte[] buffer, int length);
 
-        [DllImport(LibraryName, CallingConvention = CallConv)]
+        [DllImport(LibraryName, CallingConvention = CallConv, ExactSpelling = true)]
         internal static extern int c11_stream_write(C11StreamHandle handle, [In] byte[] buffer, int length);
 
-        [DllImport(LibraryName, CallingConvention = CallConv)]
-        internal static extern long c11_stream_seek(C11StreamHandle handle, long offset, SeekOrigin dir);
+        [DllImport(LibraryName, CallingConvention = CallConv, ExactSpelling = true)]
+        internal static extern long c11_stream_seek(C11StreamHandle handle, long offset, SeekDirs seekDir);
 
-        [DllImport(LibraryName, CallingConvention = CallConv)]
+        [DllImport(LibraryName, CallingConvention = CallConv, ExactSpelling = true)]
         internal static extern int c11_stream_flush(C11StreamHandle handle);
 
-        [DllImport(LibraryName, CallingConvention = CallConv)]
-        internal static extern int c11_stream_trunc(C11StreamHandle handle, long size);
+        [DllImport(LibraryName, CallingConvention = CallConv, ExactSpelling = true)]
+        internal static extern int c11_stream_trunc(C11StreamHandle handle, long newSize);
 
         #endregion
     }
@@ -128,7 +128,7 @@ namespace Cxx11BindingsSharp.Tests
             var ret = NativeLibraryTests.c11_stream_write(managedC11Stream, data, data.Length);
             Assert.Equal(data.Length, ret);
             Assert.Equal(data.Length, managedC11Stream.Position);
-            var ret2 = NativeLibraryTests.c11_stream_seek(managedC11Stream, 0, SeekOrigin.Begin);
+            var ret2 = NativeLibraryTests.c11_stream_seek(managedC11Stream, 0, (int) SeekDirs.Begin);
             Assert.Equal(0, ret2);
             Assert.Equal(0, managedC11Stream.Position);
             var buffer = new byte[data.Length];
@@ -162,6 +162,7 @@ namespace Cxx11BindingsSharp.Tests
                 File.Delete(tempFilePath);
             }
         }
+
         [Fact]
         public void Length_ReturnsUnderlyingFileLengthMixed()
         {
@@ -186,6 +187,77 @@ namespace Cxx11BindingsSharp.Tests
             {
                 File.Delete(tempFilePath);
             }
+        }
+
+
+        [Fact]
+        public void Write_NullByteArray_ShouldThrowArgumentNullException()
+        {
+            using var ms = new MemoryStream();
+            byte[]? data = null;
+            Assert.Throws<ArgumentNullException>(() => ms.Write(data!, 0, 1));
+
+            var managedC11Stream = new ManagedC11Stream(ms);
+            var ret = NativeLibraryTests.c11_stream_write(managedC11Stream, data!, 1);
+            Assert.True(ret < 0);
+            var hresult = (new ArgumentNullException()).HResult;
+            Assert.Equal(hresult, ret);
+        }
+
+        [Fact]
+        public void Write_ToReadOnlyMemoryStream_ShouldThrowNotSupportedException()
+        {
+            using var ms = new MemoryStream(new byte[10], writable: false);
+            var data = new byte[] {1, 2, 3};
+            Assert.Throws<NotSupportedException>(() => ms.Write(data, 0, data.Length));
+
+            var managedC11Stream = new ManagedC11Stream(ms);
+            var ret = NativeLibraryTests.c11_stream_write(managedC11Stream, data, data.Length);
+            Assert.True(ret < 0);
+            var hresult = (new NotSupportedException()).HResult;
+            Assert.Equal(hresult, ret);
+        }
+
+        [Fact]
+        public void Write_InvalidLength_ShouldThrowArgumentOutOfRangeException()
+        {
+            using var ms = new MemoryStream(new byte[10], writable: false);
+            var data = new byte[] {1, 2, 3};
+            Assert.Throws<ArgumentOutOfRangeException>(() => ms.Write(data, 0, -42));
+
+            var managedC11Stream = new ManagedC11Stream(ms);
+            var ret = NativeLibraryTests.c11_stream_write(managedC11Stream, data, -42);
+            Assert.True(ret < 0);
+            var hresult = (new ArgumentOutOfRangeException()).HResult;
+            Assert.Equal(hresult, ret);
+        }
+
+        [Fact]
+        public void Write_OnClosedStream_ShouldThrowArgumentOutOfRangeException()
+        {
+            var ms = new MemoryStream(new byte[10], writable: true);
+            var data = new byte[] {1, 2, 3};
+            ms.Close();
+            Assert.Throws<ObjectDisposedException>(() => ms.Write(data, 0, data.Length));
+
+            var managedC11Stream = new ManagedC11Stream(ms);
+            var ret = NativeLibraryTests.c11_stream_write(managedC11Stream, data, data.Length);
+            Assert.True(ret < 0);
+            var hresult = (new ObjectDisposedException(string.Empty)).HResult;
+            Assert.Equal(hresult, ret);
+        }
+
+        [Fact]
+        public void Truncate_OnFixedStream_ShouldThrowNotSupportedException()
+        {
+            var ms = new MemoryStream(new byte[10], writable: true);
+            Assert.Throws<NotSupportedException>(() => ms.SetLength(4096));
+
+            var managedC11Stream = new ManagedC11Stream(ms);
+            var ret = NativeLibraryTests.c11_stream_trunc(managedC11Stream, 4096);
+            Assert.True(ret < 0);
+            var hresult = (new NotSupportedException()).HResult;
+            Assert.Equal(hresult, ret);
         }
     }
 }
