@@ -43,7 +43,7 @@ jobs:
       - name: Build
         run: dotnet build -p:TargetFramework=net6.0 --no-restore
       - name: Manual copy
-        run: cp target/x86_64-unknown-linux-gnu/lib/Cxx11Bindings.so tests/Cxx11BindingsSharp.Tests/bin/Debug/net6.0/Cxx11BindingsTests.so
+        run: cp build/lib/Cxx11BindingsTests.so tests/Cxx11BindingsSharp.Tests/bin/Debug/net6.0/
       - name: Test
         run: dotnet test --no-build --verbosity normal
 
@@ -78,8 +78,8 @@ jobs:
         run: dotnet build --no-restore
       - name: Manual copy
         run: |
-          cp target/x86_64-pc-windows-msvc/lib/Cxx11Bindings.dll tests/Cxx11BindingsSharp.Tests/bin/Debug/net6.0/Cxx11BindingsTests.dll
-          cp target/x86_64-pc-windows-msvc/lib/Cxx11Bindings.dll tests/Cxx11BindingsSharp.Tests/bin/Debug/net8.0/Cxx11BindingsTests.dll
+          cp build/lib/Release/Cxx11BindingsTests.dll tests/Cxx11BindingsSharp.Tests/bin/Debug/net6.0/
+          cp build/lib/Release/Cxx11BindingsTests.dll tests/Cxx11BindingsSharp.Tests/bin/Debug/net8.0/
       - name: Test
         run: dotnet test --no-build --verbosity normal
 
