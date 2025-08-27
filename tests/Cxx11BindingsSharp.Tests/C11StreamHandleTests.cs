@@ -11,17 +11,17 @@ namespace Cxx11BindingsSharp.Tests
             var c11Stream = new C11StreamHandle(null, null, null, null, null);
             var hresult = (new NotSupportedException()).HResult;
             var buffer = new byte[4096];
-            var ret = NativeLibraryTests.c11_stream_read(c11Stream, buffer, buffer.Length);
+            var ret = NativeLibraryTests.tc11_stream_read(c11Stream, buffer, buffer.Length);
             Assert.True(ret < 0);
             Assert.Equal(hresult, NativeLibrary.ConvErrorToManaged(ret));
-            ret = NativeLibraryTests.c11_stream_write(c11Stream, buffer, buffer.Length);
+            ret = NativeLibraryTests.tc11_stream_write(c11Stream, buffer, buffer.Length);
             Assert.Equal(hresult, NativeLibrary.ConvErrorToManaged(ret));
-            var ret2 = NativeLibraryTests.c11_stream_seek(c11Stream, 0, SeekDirs.Begin);
+            var ret2 = NativeLibraryTests.tc11_stream_seek(c11Stream, 0, SeekDirs.Begin);
             Assert.True(ret2 < 0, $"Expected negative return value, got {ret2}");
             Assert.Equal(hresult, NativeLibrary.ConvErrorToManaged((int)ret2));
-            ret = NativeLibraryTests.c11_stream_flush(c11Stream);
+            ret = NativeLibraryTests.tc11_stream_flush(c11Stream);
             Assert.Equal(hresult, NativeLibrary.ConvErrorToManaged(ret));
-            ret = NativeLibraryTests.c11_stream_trunc(c11Stream, 4096);
+            ret = NativeLibraryTests.tc11_stream_trunc(c11Stream, 4096);
             Assert.Equal(hresult, NativeLibrary.ConvErrorToManaged(ret));
         }
     }
