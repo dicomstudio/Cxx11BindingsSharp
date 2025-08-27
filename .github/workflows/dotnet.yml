@@ -21,7 +21,11 @@ jobs:
   linux-amd64:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout with submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+          fetch-depth: 0
       - name: Install Google Test
         run: sudo apt-get update && sudo apt-get install -y libgtest-dev
       - name: CMake configure
@@ -46,7 +50,11 @@ jobs:
   windows-amd64:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout with submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+          fetch-depth: 0
       - name: Run vcpkg
         uses: lukka/run-vcpkg@v11
         with:
@@ -80,7 +88,11 @@ jobs:
     runs-on: ubuntu-latest
     needs: [ linux-amd64, windows-amd64 ]
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout with submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+          fetch-depth: 0
       - name: Nuget pack
         run: dotnet pack -p:Version=0.0.0 --configuration Release
 
@@ -104,7 +116,11 @@ jobs:
       packages: write
     needs: [ linux-amd64, windows-amd64 ]
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout with submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+          fetch-depth: 0
       - name: Extract version from tag
         run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
       - name: Nuget pack
