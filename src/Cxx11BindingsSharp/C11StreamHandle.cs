@@ -22,6 +22,19 @@ namespace Cxx11BindingsSharp
         End = 2,
     }
 
+    internal enum ErrorCodes
+    {
+        // NullReferenceException
+        C11_E_POINTER = unchecked((int) 0x80000000),
+
+        // NotSupportedException
+        C11_E_NOTSUPPORTED,
+
+        // NotImplementedException
+        C11_E_NOTIMPL
+    };
+
+
     // The actual callbacks that will be used by the native library. They must be public for re-use.
     public static class NativeLibrary
     {
@@ -47,6 +60,31 @@ namespace Cxx11BindingsSharp
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         public delegate long TruncDelegate(long newSize);
+
+        #endregion
+
+        #region c11 error code
+
+        internal static int ConvErrorToManaged(int errno)
+        {
+            int ret;
+            switch ((ErrorCodes) errno)
+            {
+                case ErrorCodes.C11_E_POINTER:
+                    ret = new NullReferenceException().HResult;
+                    break;
+                case ErrorCodes.C11_E_NOTSUPPORTED:
+                    ret = new NotSupportedException().HResult;
+                    break;
+                case ErrorCodes.C11_E_NOTIMPL:
+                    ret = new NotImplementedException().HResult;
+                    break;
+                default:
+                    throw new NotImplementedException($"Error code {errno} not implemented");
+            }
+
+            return ret;
+        }
 
         #endregion
     }
