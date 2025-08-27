@@ -55,11 +55,27 @@ namespace Cxx11BindingsSharp
             }
         }
 
-        private long FSeek(long off, int dir)
+        private long FSeek(long offset, int seekDir)
         {
+            SeekOrigin seekOrigin;
+            switch ((SeekDirs) seekDir)
+            {
+                case SeekDirs.Begin:
+                    seekOrigin = SeekOrigin.Begin;
+                    break;
+                case SeekDirs.Current:
+                    seekOrigin = SeekOrigin.Current;
+                    break;
+                case SeekDirs.End:
+                    seekOrigin = SeekOrigin.End;
+                    break;
+                default:
+                    return -1;
+            }
+
             try
             {
-                var ret = _innerStream.Seek(off, (SeekOrigin) dir);
+                var ret = _innerStream.Seek(offset, seekOrigin);
                 return ret;
             }
             catch (Exception ex)
