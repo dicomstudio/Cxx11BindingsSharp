@@ -67,21 +67,13 @@ namespace Cxx11BindingsSharp
 
         internal static int ConvErrorToManaged(int errno)
         {
-            int ret;
-            switch ((ErrorCodes) errno)
+            int ret = (ErrorCodes) errno switch
             {
-                case ErrorCodes.C11_E_POINTER:
-                    ret = new NullReferenceException().HResult;
-                    break;
-                case ErrorCodes.C11_E_NOTSUPPORTED:
-                    ret = new NotSupportedException().HResult;
-                    break;
-                case ErrorCodes.C11_E_NOTIMPL:
-                    ret = new NotImplementedException().HResult;
-                    break;
-                default:
-                    throw new NotImplementedException($"Error code {errno} not implemented");
-            }
+                ErrorCodes.C11_E_POINTER => new NullReferenceException().HResult,
+                ErrorCodes.C11_E_NOTSUPPORTED => new NotSupportedException().HResult,
+                ErrorCodes.C11_E_NOTIMPL => new NotImplementedException().HResult,
+                _ => throw new NotImplementedException($"Error code {errno} not implemented")
+            };
 
             return ret;
         }
