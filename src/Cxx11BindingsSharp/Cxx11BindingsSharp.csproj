@@ -41,7 +41,6 @@
     <ItemGroup>
         <None Include="../../native/cxx11bindings.h" Pack="true" PackagePath="build/native/include"/>
         <None Include="../../native/cxx11bindings.hxx" Pack="true" PackagePath="build/native/include"/>
-        <None Include="../../native/cxx11exceptions.hxx" Pack="true" PackagePath="build/native/include"/>
         <None Include="../../README.md" Pack="true" PackagePath="/"/>
     </ItemGroup>
 
