@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Runtime.InteropServices;
 using Microsoft.Win32.SafeHandles;
 
@@ -31,7 +32,13 @@ namespace Cxx11BindingsSharp
         C11_E_NOTSUPPORTED,
 
         // NotImplementedException
-        C11_E_NOTIMPL
+        C11_E_NOTIMPL,
+
+        // InvalidArgument
+        C11_E_INVALIDARG,
+
+        // IOException
+        C11_E_IO,
     };
 
 
@@ -67,11 +74,13 @@ namespace Cxx11BindingsSharp
 
         internal static int ConvErrorToManaged(int errno)
         {
-            int ret = (ErrorCodes) errno switch
+            var ret = (ErrorCodes) errno switch
             {
                 ErrorCodes.C11_E_POINTER => new NullReferenceException().HResult,
                 ErrorCodes.C11_E_NOTSUPPORTED => new NotSupportedException().HResult,
                 ErrorCodes.C11_E_NOTIMPL => new NotImplementedException().HResult,
+                ErrorCodes.C11_E_INVALIDARG => new ArgumentException(string.Empty).HResult,
+                ErrorCodes.C11_E_IO => new IOException().HResult,
                 _ => throw new NotImplementedException($"Error code {errno} not implemented")
             };
 
