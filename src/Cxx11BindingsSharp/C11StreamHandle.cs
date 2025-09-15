@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Runtime.InteropServices;
 using Microsoft.Win32.SafeHandles;
@@ -48,25 +49,25 @@ namespace Cxx11BindingsSharp
         #region c11 stream
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        internal delegate int BufReadDelegate(IntPtr buffer, int size);
+        internal delegate int BufReadDelegate(IntPtr self, IntPtr buffer, int size);
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        internal delegate int BufWriteDelegate(IntPtr buffer, int size);
+        internal delegate int BufWriteDelegate(IntPtr self, IntPtr buffer, int size);
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        public delegate int ReadDelegate([Out] byte[] buffer, int size);
+        public delegate int ReadDelegate(IntPtr self, [Out] byte[] buffer, int size);
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        public delegate int WriteDelegate([In] byte[] buffer, int size);
+        public delegate int WriteDelegate(IntPtr self, [In] byte[] buffer, int size);
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        public delegate long SeekDelegate(long offset, int seekDir);
+        public delegate long SeekDelegate(IntPtr self, long offset, int seekDir);
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        public delegate int FlushDelegate();
+        public delegate int FlushDelegate(IntPtr self);
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        public delegate long TruncDelegate(long newSize);
+        public delegate long TruncDelegate(IntPtr self, long newSize);
 
         #endregion
 
@@ -85,6 +86,34 @@ namespace Cxx11BindingsSharp
             };
 
             return ret;
+        }
+
+        [DoesNotReturn]
+        private static void HandleException(int errno)
+        {
+            var errorCode = ConvErrorToManaged(errno);
+            var ex = Marshal.GetExceptionForHR(errorCode);
+            if (ex == null)
+            {
+                throw new InvalidOperationException("Program error: cannot convert error code to exception");
+            }
+
+            throw ex;
+        }
+
+        internal static long HandleExceptionOrReturnValue(long err)
+        {
+            if (err >= 0) return err;
+            var errno = checked((int) err); // throws OverflowException if out of range
+            HandleException(errno);
+            return 0; // Unreachable, but required for compilation
+        }
+
+        internal static int HandleExceptionOrReturnValue(int errno)
+        {
+            if (errno >= 0) return errno;
+            HandleException(errno);
+            return 0; // Unreachable, but required for compilation
         }
 
         #endregion
@@ -131,12 +160,12 @@ namespace Cxx11BindingsSharp
         private NativeLibrary.BufReadDelegate BufReadDelegate { get; set; }
         private NativeLibrary.BufWriteDelegate BufWriteDelegate { get; set; }
 
-        private int BufRead(IntPtr outBuffer, int count)
+        private int BufRead(IntPtr self, IntPtr outBuffer, int count)
         {
             try
             {
                 Array.Resize(ref _buffer, count);
-                var ret = Read!(_buffer, count);
+                var ret = Read!(self, _buffer, count);
                 Marshal.Copy(_buffer, 0, outBuffer, count);
                 return ret;
             }
@@ -146,13 +175,13 @@ namespace Cxx11BindingsSharp
             }
         }
 
-        private int BufWrite(IntPtr inBuffer, int count)
+        private int BufWrite(IntPtr self, IntPtr inBuffer, int count)
         {
             try
             {
                 Array.Resize(ref _buffer, count);
                 Marshal.Copy(inBuffer, _buffer, 0, count);
-                var ret = Write!(_buffer, count);
+                var ret = Write!(self, _buffer, count);
                 return ret;
             }
             catch (Exception ex)
@@ -170,6 +199,11 @@ namespace Cxx11BindingsSharp
         internal NativeLibrary.WriteDelegate? Write { get; set; }
 
         internal NativeLibrary.ReadDelegate? Read { get; set; }
+
+        public static implicit operator IntPtr(C11StreamHandle c11StreamHandle)
+        {
+            return c11StreamHandle.handle;
+        }
 
         protected override bool ReleaseHandle()
         {

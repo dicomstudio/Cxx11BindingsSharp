@@ -29,7 +29,7 @@ namespace Cxx11BindingsSharp
             _c11Stream = new C11StreamHandle(FRead, FWrite, FSeek, FFlush, FTrunc);
         }
 
-        private int FRead(byte[] buffer, int count)
+        private int FRead(IntPtr self, byte[] buffer, int count)
         {
             try
             {
@@ -42,7 +42,7 @@ namespace Cxx11BindingsSharp
             }
         }
 
-        private int FWrite(byte[] buffer, int count)
+        private int FWrite(IntPtr self, byte[] buffer, int count)
         {
             try
             {
@@ -55,26 +55,33 @@ namespace Cxx11BindingsSharp
             }
         }
 
-        private long FSeek(long offset, int seekDir)
+        public static SeekOrigin ToSeekOrigin(SeekDirs seekDir)
         {
-            SeekOrigin seekOrigin;
-            switch ((SeekDirs) seekDir)
+            return seekDir switch
             {
-                case SeekDirs.Begin:
-                    seekOrigin = SeekOrigin.Begin;
-                    break;
-                case SeekDirs.Current:
-                    seekOrigin = SeekOrigin.Current;
-                    break;
-                case SeekDirs.End:
-                    seekOrigin = SeekOrigin.End;
-                    break;
-                default:
-                    return -1;
-            }
+                SeekDirs.Begin => SeekOrigin.Begin,
+                SeekDirs.Current => SeekOrigin.Current,
+                SeekDirs.End => SeekOrigin.End,
+                _ => throw new ArgumentOutOfRangeException(nameof(seekDir), seekDir, "Invalid SeekDir value")
+            };
+        }
 
+        public static SeekDirs ToSeekDirs(SeekOrigin origin)
+        {
+            return origin switch
+            {
+                SeekOrigin.Begin => SeekDirs.Begin,
+                SeekOrigin.Current => SeekDirs.Current,
+                SeekOrigin.End => SeekDirs.End,
+                _ => throw new ArgumentOutOfRangeException(nameof(origin), origin, "Invalid SeekOrigin value")
+            };
+        }
+
+        private long FSeek(IntPtr self, long offset, int seekDir)
+        {
             try
             {
+                var seekOrigin = ToSeekOrigin((SeekDirs) seekDir);
                 var ret = _innerStream.Seek(offset, seekOrigin);
                 return ret;
             }
@@ -84,7 +91,7 @@ namespace Cxx11BindingsSharp
             }
         }
 
-        private int FFlush()
+        private int FFlush(IntPtr self)
         {
             try
             {
@@ -97,7 +104,7 @@ namespace Cxx11BindingsSharp
             }
         }
 
-        private long FTrunc(long length)
+        private long FTrunc(IntPtr self, long length)
         {
             try
             {
@@ -123,7 +130,13 @@ namespace Cxx11BindingsSharp
             base.Dispose(disposing);
         }
 
+
         public static implicit operator C11StreamHandle(ManagedC11Stream managedC11Stream)
+        {
+            return managedC11Stream._c11Stream;
+        }
+
+        public static implicit operator IntPtr(ManagedC11Stream managedC11Stream)
         {
             return managedC11Stream._c11Stream;
         }
