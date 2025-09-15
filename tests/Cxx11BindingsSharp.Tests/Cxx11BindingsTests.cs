@@ -45,6 +45,21 @@ namespace Cxx11BindingsSharp.Tests
         internal static extern int test_c11_file_stream_destroy(IntPtr handle);
 
         #endregion
+
+        #region cxx11 file stream
+
+        [DllImport(LibraryName, CallingConvention = CallConv, ExactSpelling = true, CharSet = CharSet.Unicode)]
+        internal static extern int test_cxx11_file_stream_create1(out IntPtr pHandle,
+            [MarshalAs(UnmanagedType.LPUTF8Str)] string filename, [MarshalAs(UnmanagedType.LPUTF8Str)] string mode);
+
+        [DllImport(LibraryName, CallingConvention = CallConv, ExactSpelling = true, CharSet = CharSet.Unicode)]
+        internal static extern int test_cxx11_file_stream_create2(out IntPtr pHandle,
+            [MarshalAs(UnmanagedType.LPWStr)] string filename, [MarshalAs(UnmanagedType.LPWStr)] string mode);
+
+        [DllImport(LibraryName, CallingConvention = CallConv, ExactSpelling = true)]
+        internal static extern int test_cxx11_file_stream_destroy(IntPtr handle);
+
+        #endregion
     }
 
     public sealed class C11FileStream : Stream
@@ -191,6 +206,153 @@ namespace Cxx11BindingsSharp.Tests
         {
             get => NativeLibraryTests.test_c11_stream_seek(_c11StreamPtr, 0, SeekDirs.Current);
             set => NativeLibraryTests.test_c11_stream_seek(_c11StreamPtr, value, SeekDirs.Begin);
+        }
+    }
+
+    public sealed class Cxx11FileStream : Stream
+    {
+        private const FileShare DefaultShare = FileShare.Read;
+        private readonly IntPtr _cxx11StreamPtr;
+
+        private static string ToFopenMode(FileMode mode, FileAccess access, FileShare share = FileShare.None)
+        {
+            // FileShare ignored: C fopen doesn’t support it.
+            switch (mode)
+            {
+                case FileMode.Open:
+                    if (access == FileAccess.Read) return "r";
+                    if (access == FileAccess.Write) return "r+"; // WARNING: may not always match semantics
+                    if (access == FileAccess.ReadWrite) return "r+";
+                    break;
+
+                case FileMode.Create:
+                case FileMode.CreateNew:
+                case FileMode.Truncate:
+                    if (access == FileAccess.Read) return "w+"; // read+truncate
+                    if (access == FileAccess.Write) return "w";
+                    if (access == FileAccess.ReadWrite) return "w+";
+                    break;
+
+                case FileMode.Append:
+                    if (access == FileAccess.Read) return "a+"; // read + append
+                    if (access == FileAccess.Write) return "a";
+                    if (access == FileAccess.ReadWrite) return "a+";
+                    break;
+
+                case FileMode.OpenOrCreate:
+                    // C’s fopen doesn’t have a direct OpenOrCreate, best effort:
+                    if (access == FileAccess.Read) return "a+"; // opens existing or creates, allows read
+                    if (access == FileAccess.Write) return "a";
+                    if (access == FileAccess.ReadWrite) return "a+";
+                    break;
+            }
+
+            throw new ArgumentException($"Unsupported combination: {mode}, {access}");
+        }
+
+        /// <summary>
+        /// constructor
+        /// </summary>
+        public Cxx11FileStream(string filename, FileMode fileMode, FileAccess fileAccess, FileShare fileShare)
+        {
+            var mode = ToFopenMode(fileMode, fileAccess, fileShare);
+
+            var ret = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                ? NativeLibraryTests.test_cxx11_file_stream_create2(out _cxx11StreamPtr, filename, mode)
+                : NativeLibraryTests.test_cxx11_file_stream_create1(out _cxx11StreamPtr, filename, mode);
+            if (ret < 0)
+            {
+                throw new IOException($"Cannot open file: {filename} with mode: {mode}");
+            }
+
+            // how is a good time to compute CanRead/CanWrite/CanSeek:
+            (CanRead, CanWrite, CanSeek) = ComputeCapabilities(fileMode, fileAccess, fileShare);
+        }
+
+        private static (bool canRead, bool canWrite, bool canSeek) ComputeCapabilities(FileMode mode, FileAccess access,
+            FileShare share)
+        {
+            var canRead = access == FileAccess.Read || access == FileAccess.ReadWrite;
+            var canWrite = access == FileAccess.Write || access == FileAccess.ReadWrite;
+            // C11FileStream is always seekable unless wrapping a non-seekable handle (?)
+            var canSeek = true;
+            return (canRead, canWrite, canSeek);
+        }
+
+        public Cxx11FileStream(string filename, FileMode fileMode, FileAccess fileAccess) : this(filename, fileMode,
+            fileAccess, DefaultShare)
+        {
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                // Dispose managed resources here
+                var ret = NativeLibraryTests.test_cxx11_file_stream_destroy(_cxx11StreamPtr);
+                if (ret < 0)
+                {
+                    throw new IOException("Cannot destroy file");
+                }
+            }
+
+            // Dispose unmanaged resources here (if any)
+            base.Dispose(disposing);
+        }
+
+        public override void Flush()
+        {
+            var ret = NativeLibraryTests.test_c11_stream_flush(_cxx11StreamPtr);
+            NativeLibrary.HandleExceptionOrReturnValue(ret);
+        }
+
+        public override int Read(byte[] buffer, int offset, int count)
+        {
+            var ret = NativeLibraryTests.test_c11_stream_read(_cxx11StreamPtr, buffer, buffer.Length);
+            return NativeLibrary.HandleExceptionOrReturnValue(ret);
+        }
+
+
+        public override long Seek(long offset, SeekOrigin origin)
+        {
+            var ret = NativeLibraryTests.test_c11_stream_seek(_cxx11StreamPtr, offset,
+                ManagedC11Stream.ToSeekDirs(origin));
+            return NativeLibrary.HandleExceptionOrReturnValue(ret);
+        }
+
+        public override void SetLength(long value)
+        {
+            var ret = NativeLibraryTests.test_c11_stream_trunc(_cxx11StreamPtr, value);
+            NativeLibrary.HandleExceptionOrReturnValue(ret);
+        }
+
+        public override void Write(byte[] buffer, int offset, int count)
+        {
+            var ret = NativeLibraryTests.test_c11_stream_write(_cxx11StreamPtr, buffer, buffer.Length);
+            NativeLibrary.HandleExceptionOrReturnValue(ret);
+        }
+
+        public override bool CanRead { get; }
+
+        public override bool CanSeek { get; }
+
+
+        public override bool CanWrite { get; }
+
+        private long GetLength()
+        {
+            var current = NativeLibraryTests.test_c11_stream_seek(_cxx11StreamPtr, 0, SeekDirs.Current);
+            var size = NativeLibraryTests.test_c11_stream_seek(_cxx11StreamPtr, 0, SeekDirs.End);
+            NativeLibraryTests.test_c11_stream_seek(_cxx11StreamPtr, current, SeekDirs.Begin);
+            return size;
+        }
+
+        public override long Length => GetLength();
+
+        public override long Position
+        {
+            get => NativeLibraryTests.test_c11_stream_seek(_cxx11StreamPtr, 0, SeekDirs.Current);
+            set => NativeLibraryTests.test_c11_stream_seek(_cxx11StreamPtr, value, SeekDirs.Begin);
         }
     }
 
