@@ -6,10 +6,14 @@
 
 ## Introduction
 
-Provide a thin layer to wrap a [`System.IO.Stream`](https://learn.microsoft.com/fr-fr/dotnet/api/system.io.stream) in C#
+P/Invoke provides a set of marshaling capabilities for C-style APIs, but it does not support C++ Stream/APIs directly.
+
+This library provides a thin layer to wrap a [
+`System.IO.Stream`](https://learn.microsoft.com/fr-fr/dotnet/api/system.io.stream) in C#
 to a portable C++ stream ([`std::streambuf`](https://en.cppreference.com/w/cpp/io/basic_streambuf.html)).
 The intermediate C layer is exposed and can be used directly in a C11 project.
-The custom `std::streambuf` implementation simply uses the portable C layer to call back into the concrete C# stream implementation.
+The custom `std::streambuf` implementation simply uses the portable C layer to call back into the concrete C# stream
+implementation.
 
 This is somewhat related to [
 `System.Runtime.InteropServices.ComTypes.IStream`](https://learn.microsoft.com/en-us/dotnet/api/system.runtime.interopservices.comtypes.istream)
@@ -73,11 +77,11 @@ struct c11_stream {
 Where function declarations are:
 
 ```c
-typedef int32_t (*read_fn)(byte* buffer, int32_t count);
-typedef int32_t (*write_fn)(const byte* buffer, int32_t count);
-typedef int64_t (*seek_fn)(int64_t off, int dir);
-typedef int (*flush_fn)(void);
-typedef int64_t (*trunc_fn)(int64_t size);
+typedef int32_t (*read_fn)(struct c11_stream* self, byte* buffer, int32_t count);
+typedef int32_t (*write_fn)(struct c11_stream* self, const byte* buffer, int32_t count);
+typedef int64_t (*seek_fn)(struct c11_stream* self, int64_t off, int dir);
+typedef int (*flush_fn)(struct c11_stream* self);
+typedef int64_t (*trunc_fn)(struct c11_stream* self, int64_t size);
 ```
 
 ## See:
@@ -89,3 +93,4 @@ typedef int64_t (*trunc_fn)(int64_t size);
 ## References:
 
 * https://github.com/dicomstudio/Cxx11Bindings
+* https://www.nuget.org/packages/Cxx11BindingsSharp/
