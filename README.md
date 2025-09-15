@@ -7,9 +7,9 @@
 ## Introduction
 
 Provide a thin layer to wrap a [`System.IO.Stream`](https://learn.microsoft.com/fr-fr/dotnet/api/system.io.stream) in C#
-to a portable C++ stream (`std::streambuf`).
+to a portable C++ stream ([`std::streambuf`](https://en.cppreference.com/w/cpp/io/basic_streambuf.html)).
 The intermediate C layer is exposed and can be used directly in a C11 project.
-The custom `std::streambuf` implementation simply uses the portable C layer to call back into the C# stream.
+The custom `std::streambuf` implementation simply uses the portable C layer to call back into the concrete C# stream implementation.
 
 This is somewhat related to [
 `System.Runtime.InteropServices.ComTypes.IStream`](https://learn.microsoft.com/en-us/dotnet/api/system.runtime.interopservices.comtypes.istream)
@@ -82,7 +82,7 @@ typedef int64_t (*trunc_fn)(int64_t size);
 
 ## See:
 
-* http://msdn.microsoft.com/en-us/library/system.runtime.interopservices.comtypes.istream.aspx
+* https://learn.microsoft.com/en-us/dotnet/api/system.runtime.interopservices.comtypes.istream
 * https://learn.microsoft.com/en-us/dotnet/framework/interop/marshalling-classes-structures-and-unions
 * https://stackoverflow.com/questions/6601355/passing-an-fstream-or-equivalent-from-c-sharp-to-c-through-cli
 
