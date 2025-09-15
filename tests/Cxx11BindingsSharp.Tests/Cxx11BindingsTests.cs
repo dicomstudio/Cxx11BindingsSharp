@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
+using Microsoft.Win32.SafeHandles;
 using Xunit;
 
 namespace Cxx11BindingsSharp.Tests
@@ -14,21 +15,183 @@ namespace Cxx11BindingsSharp.Tests
         private const CallingConvention CallConv = CallingConvention.Cdecl;
 
         [DllImport(LibraryName, CallingConvention = CallConv, ExactSpelling = true)]
-        internal static extern int tc11_stream_read(C11StreamHandle handle, [Out] byte[] buffer, int length);
+        internal static extern int test_c11_stream_read(IntPtr handle, [Out] byte[] buffer, int length);
 
         [DllImport(LibraryName, CallingConvention = CallConv, ExactSpelling = true)]
-        internal static extern int tc11_stream_write(C11StreamHandle handle, [In] byte[] buffer, int length);
+        internal static extern int test_c11_stream_write(IntPtr handle, [In] byte[] buffer, int length);
 
         [DllImport(LibraryName, CallingConvention = CallConv, ExactSpelling = true)]
-        internal static extern long tc11_stream_seek(C11StreamHandle handle, long offset, SeekDirs seekDir);
+        internal static extern long test_c11_stream_seek(IntPtr handle, long offset, SeekDirs seekDir);
 
         [DllImport(LibraryName, CallingConvention = CallConv, ExactSpelling = true)]
-        internal static extern int tc11_stream_flush(C11StreamHandle handle);
+        internal static extern int test_c11_stream_flush(IntPtr handle);
 
         [DllImport(LibraryName, CallingConvention = CallConv, ExactSpelling = true)]
-        internal static extern int tc11_stream_trunc(C11StreamHandle handle, long newSize);
+        internal static extern int test_c11_stream_trunc(IntPtr handle, long newSize);
 
         #endregion
+
+        #region c11 file stream
+
+        [DllImport(LibraryName, CallingConvention = CallConv, ExactSpelling = true, CharSet = CharSet.Unicode)]
+        internal static extern int test_c11_file_stream_create1(out IntPtr pHandle,
+            [MarshalAs(UnmanagedType.LPUTF8Str)] string filename, [MarshalAs(UnmanagedType.LPUTF8Str)] string mode);
+
+        [DllImport(LibraryName, CallingConvention = CallConv, ExactSpelling = true, CharSet = CharSet.Unicode)]
+        internal static extern int test_c11_file_stream_create2(out IntPtr pHandle,
+            [MarshalAs(UnmanagedType.LPWStr)] string filename, [MarshalAs(UnmanagedType.LPWStr)] string mode);
+
+        [DllImport(LibraryName, CallingConvention = CallConv, ExactSpelling = true)]
+        internal static extern int test_c11_file_stream_destroy(IntPtr handle);
+
+        #endregion
+    }
+
+    public sealed class C11FileStream : Stream
+    {
+        private const FileShare DefaultShare = FileShare.Read;
+        private readonly IntPtr _c11StreamPtr;
+
+        private static string ToFopenMode(FileMode mode, FileAccess access, FileShare share = FileShare.None)
+        {
+            // FileShare ignored: C fopen doesn’t support it.
+            switch (mode)
+            {
+                case FileMode.Open:
+                    if (access == FileAccess.Read) return "r";
+                    if (access == FileAccess.Write) return "r+"; // WARNING: may not always match semantics
+                    if (access == FileAccess.ReadWrite) return "r+";
+                    break;
+
+                case FileMode.Create:
+                case FileMode.CreateNew:
+                case FileMode.Truncate:
+                    if (access == FileAccess.Read) return "w+"; // read+truncate
+                    if (access == FileAccess.Write) return "w";
+                    if (access == FileAccess.ReadWrite) return "w+";
+                    break;
+
+                case FileMode.Append:
+                    if (access == FileAccess.Read) return "a+"; // read + append
+                    if (access == FileAccess.Write) return "a";
+                    if (access == FileAccess.ReadWrite) return "a+";
+                    break;
+
+                case FileMode.OpenOrCreate:
+                    // C’s fopen doesn’t have a direct OpenOrCreate, best effort:
+                    if (access == FileAccess.Read) return "a+"; // opens existing or creates, allows read
+                    if (access == FileAccess.Write) return "a";
+                    if (access == FileAccess.ReadWrite) return "a+";
+                    break;
+            }
+
+            throw new ArgumentException($"Unsupported combination: {mode}, {access}");
+        }
+
+        /// <summary>
+        /// constructor
+        /// </summary>
+        public C11FileStream(string filename, FileMode fileMode, FileAccess fileAccess, FileShare fileShare)
+        {
+            var mode = ToFopenMode(fileMode, fileAccess, fileShare);
+
+            var ret = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                ? NativeLibraryTests.test_c11_file_stream_create2(out _c11StreamPtr, filename, mode)
+                : NativeLibraryTests.test_c11_file_stream_create1(out _c11StreamPtr, filename, mode);
+            if (ret < 0)
+            {
+                throw new IOException($"Cannot open file: {filename} with mode: {mode}");
+            }
+
+            // how is a good time to compute CanRead/CanWrite/CanSeek:
+            (CanRead, CanWrite, CanSeek) = ComputeCapabilities(fileMode, fileAccess, fileShare);
+        }
+
+        private static (bool canRead, bool canWrite, bool canSeek) ComputeCapabilities(FileMode mode, FileAccess access,
+            FileShare share)
+        {
+            var canRead = access == FileAccess.Read || access == FileAccess.ReadWrite;
+            var canWrite = access == FileAccess.Write || access == FileAccess.ReadWrite;
+            // C11FileStream is always seekable unless wrapping a non-seekable handle (?)
+            var canSeek = true;
+            return (canRead, canWrite, canSeek);
+        }
+
+        public C11FileStream(string filename, FileMode fileMode, FileAccess fileAccess) : this(filename, fileMode,
+            fileAccess, DefaultShare)
+        {
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                // Dispose managed resources here
+                var ret = NativeLibraryTests.test_c11_file_stream_destroy(_c11StreamPtr);
+                if (ret < 0)
+                {
+                    throw new IOException("Cannot destroy file");
+                }
+            }
+
+            // Dispose unmanaged resources here (if any)
+            base.Dispose(disposing);
+        }
+
+        public override void Flush()
+        {
+            var ret = NativeLibraryTests.test_c11_stream_flush(_c11StreamPtr);
+            NativeLibrary.HandleExceptionOrReturnValue(ret);
+        }
+
+        public override int Read(byte[] buffer, int offset, int count)
+        {
+            var ret = NativeLibraryTests.test_c11_stream_read(_c11StreamPtr, buffer, buffer.Length);
+            return NativeLibrary.HandleExceptionOrReturnValue(ret);
+        }
+
+
+        public override long Seek(long offset, SeekOrigin origin)
+        {
+            var ret = NativeLibraryTests.test_c11_stream_seek(_c11StreamPtr, offset,
+                ManagedC11Stream.ToSeekDirs(origin));
+            return NativeLibrary.HandleExceptionOrReturnValue(ret);
+        }
+
+        public override void SetLength(long value)
+        {
+            var ret = NativeLibraryTests.test_c11_stream_trunc(_c11StreamPtr, value);
+            NativeLibrary.HandleExceptionOrReturnValue(ret);
+        }
+
+        public override void Write(byte[] buffer, int offset, int count)
+        {
+            var ret = NativeLibraryTests.test_c11_stream_write(_c11StreamPtr, buffer, buffer.Length);
+            NativeLibrary.HandleExceptionOrReturnValue(ret);
+        }
+
+        public override bool CanRead { get; }
+
+        public override bool CanSeek { get; }
+
+
+        public override bool CanWrite { get; }
+
+        private long GetLength()
+        {
+            var current = NativeLibraryTests.test_c11_stream_seek(_c11StreamPtr, 0, SeekDirs.Current);
+            var size = NativeLibraryTests.test_c11_stream_seek(_c11StreamPtr, 0, SeekDirs.End);
+            NativeLibraryTests.test_c11_stream_seek(_c11StreamPtr, current, SeekDirs.Begin);
+            return size;
+        }
+
+        public override long Length => GetLength();
+
+        public override long Position
+        {
+            get => NativeLibraryTests.test_c11_stream_seek(_c11StreamPtr, 0, SeekDirs.Current);
+            set => NativeLibraryTests.test_c11_stream_seek(_c11StreamPtr, value, SeekDirs.Begin);
+        }
     }
 
     public class C11BindingsTests
@@ -48,7 +211,7 @@ namespace Cxx11BindingsSharp.Tests
             var buffer = new byte[shortRead];
 
             var managedC11Stream = new ManagedC11Stream(ms);
-            var ret = NativeLibraryTests.tc11_stream_read(managedC11Stream, buffer, buffer.Length);
+            var ret = NativeLibraryTests.test_c11_stream_read(managedC11Stream, buffer, buffer.Length);
             Assert.Equal(shortRead, ret);
             Assert.Equal(buffer, data[..ret]);
         }
@@ -64,7 +227,7 @@ namespace Cxx11BindingsSharp.Tests
             var buffer = new byte[data.Length];
 
             var managedC11Stream = new ManagedC11Stream(ms);
-            var ret = NativeLibraryTests.tc11_stream_read(managedC11Stream, buffer, buffer.Length);
+            var ret = NativeLibraryTests.test_c11_stream_read(managedC11Stream, buffer, buffer.Length);
             Assert.Equal(data.Length, ret);
             Assert.Equal(buffer, data);
         }
@@ -80,7 +243,7 @@ namespace Cxx11BindingsSharp.Tests
             var buffer = new byte[data.Length + 1];
 
             var managedC11Stream = new ManagedC11Stream(ms);
-            var ret = NativeLibraryTests.tc11_stream_read(managedC11Stream, buffer, buffer.Length);
+            var ret = NativeLibraryTests.test_c11_stream_read(managedC11Stream, buffer, buffer.Length);
             Assert.Equal(data.Length, ret);
             Assert.Equal(buffer[..ret], data);
         }
@@ -92,7 +255,7 @@ namespace Cxx11BindingsSharp.Tests
             var data = Encoding.UTF8.GetBytes(TestText);
 
             var managedC11Stream = new ManagedC11Stream(ms);
-            var ret = NativeLibraryTests.tc11_stream_write(managedC11Stream, data, data.Length);
+            var ret = NativeLibraryTests.test_c11_stream_write(managedC11Stream, data, data.Length);
             Assert.Equal(data.Length, ret);
             var buffer = ms.ToArray();
             Assert.Equal(buffer, data);
@@ -105,7 +268,7 @@ namespace Cxx11BindingsSharp.Tests
             var ms = new MemoryStream();
             {
                 var managedC11Stream = new ManagedC11Stream(ms);
-                var ret = NativeLibraryTests.tc11_stream_trunc(managedC11Stream, 10);
+                var ret = NativeLibraryTests.test_c11_stream_trunc(managedC11Stream, 10);
                 Assert.Equal(10, ret);
                 Assert.Equal(10, ms.Length);
             }
@@ -113,7 +276,7 @@ namespace Cxx11BindingsSharp.Tests
             // Extend
             {
                 var managedC11Stream = new ManagedC11Stream(ms);
-                var ret = NativeLibraryTests.tc11_stream_trunc(managedC11Stream, 20);
+                var ret = NativeLibraryTests.test_c11_stream_trunc(managedC11Stream, 20);
                 Assert.Equal(20, ret);
                 Assert.Equal(20, ms.Length);
             }
@@ -125,14 +288,14 @@ namespace Cxx11BindingsSharp.Tests
             var ms = new MemoryStream();
             var managedC11Stream = new ManagedC11Stream(ms);
             var data = Encoding.UTF8.GetBytes(TestText);
-            var ret = NativeLibraryTests.tc11_stream_write(managedC11Stream, data, data.Length);
+            var ret = NativeLibraryTests.test_c11_stream_write(managedC11Stream, data, data.Length);
             Assert.Equal(data.Length, ret);
             Assert.Equal(data.Length, managedC11Stream.Position);
-            var ret2 = NativeLibraryTests.tc11_stream_seek(managedC11Stream, 0, (int) SeekDirs.Begin);
+            var ret2 = NativeLibraryTests.test_c11_stream_seek(managedC11Stream, 0, (int) SeekDirs.Begin);
             Assert.Equal(0, ret2);
             Assert.Equal(0, managedC11Stream.Position);
             var buffer = new byte[data.Length];
-            var ret3 = NativeLibraryTests.tc11_stream_read(managedC11Stream, buffer, buffer.Length);
+            var ret3 = NativeLibraryTests.test_c11_stream_read(managedC11Stream, buffer, buffer.Length);
             Assert.Equal(data.Length, ret3);
             Assert.Equal(data, buffer);
         }
@@ -147,12 +310,12 @@ namespace Cxx11BindingsSharp.Tests
                     new FileStream(tempFilePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
                 var managedC11Stream = new ManagedC11Stream(tempFileStream);
                 var data = Encoding.UTF8.GetBytes(TestText);
-                var ret1 = NativeLibraryTests.tc11_stream_write(managedC11Stream, data, data.Length);
+                var ret1 = NativeLibraryTests.test_c11_stream_write(managedC11Stream, data, data.Length);
                 Assert.Equal(data.Length, ret1);
                 var length1 = new FileInfo(tempFilePath).Length;
                 Assert.Equal(0, length1);
                 // native flush:
-                var ret2 = NativeLibraryTests.tc11_stream_flush(managedC11Stream);
+                var ret2 = NativeLibraryTests.test_c11_stream_flush(managedC11Stream);
                 Assert.Equal(0, ret2);
                 var length2 = new FileInfo(tempFilePath).Length;
                 Assert.Equal(data.Length, length2);
@@ -173,7 +336,7 @@ namespace Cxx11BindingsSharp.Tests
                     new FileStream(tempFilePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
                 var managedC11Stream = new ManagedC11Stream(tempFileStream);
                 var data = Encoding.UTF8.GetBytes(TestText);
-                var ret1 = NativeLibraryTests.tc11_stream_write(managedC11Stream, data, data.Length);
+                var ret1 = NativeLibraryTests.test_c11_stream_write(managedC11Stream, data, data.Length);
                 Assert.Equal(data.Length, ret1);
                 var length1 = new FileInfo(tempFilePath).Length;
                 Assert.Equal(0, length1);
@@ -198,7 +361,7 @@ namespace Cxx11BindingsSharp.Tests
             Assert.Throws<ArgumentNullException>(() => ms.Write(data!, 0, 1));
 
             var managedC11Stream = new ManagedC11Stream(ms);
-            var ret = NativeLibraryTests.tc11_stream_write(managedC11Stream, data!, 1);
+            var ret = NativeLibraryTests.test_c11_stream_write(managedC11Stream, data!, 1);
             Assert.True(ret < 0);
             var hresult = (new ArgumentNullException()).HResult;
             Assert.Equal(hresult, ret);
@@ -212,7 +375,7 @@ namespace Cxx11BindingsSharp.Tests
             Assert.Throws<NotSupportedException>(() => ms.Write(data, 0, data.Length));
 
             var managedC11Stream = new ManagedC11Stream(ms);
-            var ret = NativeLibraryTests.tc11_stream_write(managedC11Stream, data, data.Length);
+            var ret = NativeLibraryTests.test_c11_stream_write(managedC11Stream, data, data.Length);
             Assert.True(ret < 0);
             var hresult = (new NotSupportedException()).HResult;
             Assert.Equal(hresult, ret);
@@ -226,7 +389,7 @@ namespace Cxx11BindingsSharp.Tests
             Assert.Throws<ArgumentOutOfRangeException>(() => ms.Write(data, 0, -42));
 
             var managedC11Stream = new ManagedC11Stream(ms);
-            var ret = NativeLibraryTests.tc11_stream_write(managedC11Stream, data, -42);
+            var ret = NativeLibraryTests.test_c11_stream_write(managedC11Stream, data, -42);
             Assert.True(ret < 0);
             var hresult = (new ArgumentOutOfRangeException()).HResult;
             Assert.Equal(hresult, ret);
@@ -241,7 +404,7 @@ namespace Cxx11BindingsSharp.Tests
             Assert.Throws<ObjectDisposedException>(() => ms.Write(data, 0, data.Length));
 
             var managedC11Stream = new ManagedC11Stream(ms);
-            var ret = NativeLibraryTests.tc11_stream_write(managedC11Stream, data, data.Length);
+            var ret = NativeLibraryTests.test_c11_stream_write(managedC11Stream, data, data.Length);
             Assert.True(ret < 0);
             var hresult = (new ObjectDisposedException(string.Empty)).HResult;
             Assert.Equal(hresult, ret);
@@ -254,7 +417,7 @@ namespace Cxx11BindingsSharp.Tests
             Assert.Throws<NotSupportedException>(() => ms.SetLength(4096));
 
             var managedC11Stream = new ManagedC11Stream(ms);
-            var ret = NativeLibraryTests.tc11_stream_trunc(managedC11Stream, 4096);
+            var ret = NativeLibraryTests.test_c11_stream_trunc(managedC11Stream, 4096);
             Assert.True(ret < 0);
             var hresult = (new NotSupportedException()).HResult;
             Assert.Equal(hresult, ret);
