@@ -13,7 +13,7 @@ trim_trailing_whitespace = true
 trim_trailing_whitespace = false
 insert_final_newline = true
 
-[*.{h,cs,cxx,hxx}]
+[*.{h,cs,c,cxx,hxx}]
 insert_final_newline = true
 
 [CMakeLists.txt]
