@@ -1,8 +1,10 @@
 using System;
 using System.IO;
+#if !NET6_0_OR_GREATER
+using System.Linq;
+#endif
 using System.Runtime.InteropServices;
 using System.Text;
-using Microsoft.Win32.SafeHandles;
 using Xunit;
 
 namespace Cxx11BindingsSharp.Tests
@@ -375,7 +377,11 @@ namespace Cxx11BindingsSharp.Tests
             var managedC11Stream = new ManagedC11Stream(ms);
             var ret = NativeLibraryTests.test_c11_stream_read(managedC11Stream, buffer, buffer.Length);
             Assert.Equal(shortRead, ret);
+#if NET6_0_OR_GREATER
             Assert.Equal(buffer, data[..ret]);
+#else
+            Assert.Equal(buffer, data.Take(ret).ToArray());
+#endif
         }
 
         [Fact]
@@ -407,7 +413,11 @@ namespace Cxx11BindingsSharp.Tests
             var managedC11Stream = new ManagedC11Stream(ms);
             var ret = NativeLibraryTests.test_c11_stream_read(managedC11Stream, buffer, buffer.Length);
             Assert.Equal(data.Length, ret);
+#if NET6_0_OR_GREATER
             Assert.Equal(buffer[..ret], data);
+#else
+            Assert.Equal(buffer.Take(ret).ToArray(), data);
+#endif
         }
 
         [Fact]
@@ -468,19 +478,21 @@ namespace Cxx11BindingsSharp.Tests
             var tempFilePath = Path.GetTempFileName();
             try
             {
-                using var tempFileStream =
-                    new FileStream(tempFilePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
-                var managedC11Stream = new ManagedC11Stream(tempFileStream);
-                var data = Encoding.UTF8.GetBytes(TestText);
-                var ret1 = NativeLibraryTests.test_c11_stream_write(managedC11Stream, data, data.Length);
-                Assert.Equal(data.Length, ret1);
-                var length1 = new FileInfo(tempFilePath).Length;
-                Assert.Equal(0, length1);
-                // native flush:
-                var ret2 = NativeLibraryTests.test_c11_stream_flush(managedC11Stream);
-                Assert.Equal(0, ret2);
-                var length2 = new FileInfo(tempFilePath).Length;
-                Assert.Equal(data.Length, length2);
+                using (var tempFileStream =
+                       new FileStream(tempFilePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+                {
+                    var managedC11Stream = new ManagedC11Stream(tempFileStream);
+                    var data = Encoding.UTF8.GetBytes(TestText);
+                    var ret1 = NativeLibraryTests.test_c11_stream_write(managedC11Stream, data, data.Length);
+                    Assert.Equal(data.Length, ret1);
+                    var length1 = new FileInfo(tempFilePath).Length;
+                    Assert.Equal(0, length1);
+                    // native flush:
+                    var ret2 = NativeLibraryTests.test_c11_stream_flush(managedC11Stream);
+                    Assert.Equal(0, ret2);
+                    var length2 = new FileInfo(tempFilePath).Length;
+                    Assert.Equal(data.Length, length2);
+                }
             }
             finally
             {
@@ -494,19 +506,21 @@ namespace Cxx11BindingsSharp.Tests
             var tempFilePath = Path.GetTempFileName();
             try
             {
-                using var tempFileStream =
-                    new FileStream(tempFilePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
-                var managedC11Stream = new ManagedC11Stream(tempFileStream);
-                var data = Encoding.UTF8.GetBytes(TestText);
-                var ret1 = NativeLibraryTests.test_c11_stream_write(managedC11Stream, data, data.Length);
-                Assert.Equal(data.Length, ret1);
-                var length1 = new FileInfo(tempFilePath).Length;
-                Assert.Equal(0, length1);
-                // c# flush:
-                managedC11Stream.Flush();
-                // no exception
-                var length2 = new FileInfo(tempFilePath).Length;
-                Assert.Equal(data.Length, length2);
+                using (var tempFileStream =
+                       new FileStream(tempFilePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+                {
+                    var managedC11Stream = new ManagedC11Stream(tempFileStream);
+                    var data = Encoding.UTF8.GetBytes(TestText);
+                    var ret1 = NativeLibraryTests.test_c11_stream_write(managedC11Stream, data, data.Length);
+                    Assert.Equal(data.Length, ret1);
+                    var length1 = new FileInfo(tempFilePath).Length;
+                    Assert.Equal(0, length1);
+                    // c# flush:
+                    managedC11Stream.Flush();
+                    // no exception
+                    var length2 = new FileInfo(tempFilePath).Length;
+                    Assert.Equal(data.Length, length2);
+                }
             }
             finally
             {
@@ -518,43 +532,58 @@ namespace Cxx11BindingsSharp.Tests
         [Fact]
         public void Write_NullByteArray_ShouldThrowArgumentNullException()
         {
-            using var ms = new MemoryStream();
-            byte[]? data = null;
-            Assert.Throws<ArgumentNullException>(() => ms.Write(data!, 0, 1));
+            using (var ms = new MemoryStream())
+            {
+#if NET6_0_OR_GREATER
+                byte[]? data = null;
+                Assert.Throws<ArgumentNullException>(() => ms.Write(data!, 0, 1));
+#else
+                byte[] data = null;
+                Assert.Throws<ArgumentNullException>(() => ms.Write(data, 0, 1));
+#endif
 
-            var managedC11Stream = new ManagedC11Stream(ms);
-            var ret = NativeLibraryTests.test_c11_stream_write(managedC11Stream, data!, 1);
-            Assert.True(ret < 0);
-            var hresult = (new ArgumentNullException()).HResult;
-            Assert.Equal(hresult, ret);
+                var managedC11Stream = new ManagedC11Stream(ms);
+#if NET6_0_OR_GREATER
+                var ret = NativeLibraryTests.test_c11_stream_write(managedC11Stream, data!, 1);
+#else
+                var ret = NativeLibraryTests.test_c11_stream_write(managedC11Stream, data, 1);
+#endif
+                Assert.True(ret < 0);
+                var hresult = (new ArgumentNullException()).HResult;
+                Assert.Equal(hresult, ret);
+            }
         }
 
         [Fact]
         public void Write_ToReadOnlyMemoryStream_ShouldThrowNotSupportedException()
         {
-            using var ms = new MemoryStream(new byte[10], writable: false);
-            var data = new byte[] {1, 2, 3};
-            Assert.Throws<NotSupportedException>(() => ms.Write(data, 0, data.Length));
+            using (var ms = new MemoryStream(new byte[10], writable: false))
+            {
+                var data = new byte[] {1, 2, 3};
+                Assert.Throws<NotSupportedException>(() => ms.Write(data, 0, data.Length));
 
-            var managedC11Stream = new ManagedC11Stream(ms);
-            var ret = NativeLibraryTests.test_c11_stream_write(managedC11Stream, data, data.Length);
-            Assert.True(ret < 0);
-            var hresult = (new NotSupportedException()).HResult;
-            Assert.Equal(hresult, ret);
+                var managedC11Stream = new ManagedC11Stream(ms);
+                var ret = NativeLibraryTests.test_c11_stream_write(managedC11Stream, data, data.Length);
+                Assert.True(ret < 0);
+                var hresult = (new NotSupportedException()).HResult;
+                Assert.Equal(hresult, ret);
+            }
         }
 
         [Fact]
         public void Write_InvalidLength_ShouldThrowArgumentOutOfRangeException()
         {
-            using var ms = new MemoryStream(new byte[10], writable: false);
-            var data = new byte[] {1, 2, 3};
-            Assert.Throws<ArgumentOutOfRangeException>(() => ms.Write(data, 0, -42));
+            using (var ms = new MemoryStream(new byte[10], writable: false))
+            {
+                var data = new byte[] {1, 2, 3};
+                Assert.Throws<ArgumentOutOfRangeException>(() => ms.Write(data, 0, -42));
 
-            var managedC11Stream = new ManagedC11Stream(ms);
-            var ret = NativeLibraryTests.test_c11_stream_write(managedC11Stream, data, -42);
-            Assert.True(ret < 0);
-            var hresult = (new ArgumentOutOfRangeException()).HResult;
-            Assert.Equal(hresult, ret);
+                var managedC11Stream = new ManagedC11Stream(ms);
+                var ret = NativeLibraryTests.test_c11_stream_write(managedC11Stream, data, -42);
+                Assert.True(ret < 0);
+                var hresult = (new ArgumentOutOfRangeException()).HResult;
+                Assert.Equal(hresult, ret);
+            }
         }
 
         [Fact]

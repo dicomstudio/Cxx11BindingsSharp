@@ -1,5 +1,8 @@
 using System;
 using System.IO;
+#if !NET6_0_OR_GREATER
+using System.Linq;
+#endif
 using System.Text;
 using Xunit;
 
@@ -11,7 +14,13 @@ namespace Cxx11BindingsSharp.Tests
         private const string TestText = "The quick brown fox jumps over the lazy dog";
         private const string FileName = "ManagedStreamBufShimFileTestsFile.txt";
 
-        private static void CreateTestFile(string? content = null)
+        private static void CreateTestFile(
+#if NET6_0_OR_GREATER
+            string? content = null
+#else
+            string content = null
+#endif
+        )
         {
             File.WriteAllText(FileName, content ?? TestText, Encoding.ASCII);
         }
@@ -27,7 +36,11 @@ namespace Cxx11BindingsSharp.Tests
                 var ret = wrap.Read(buffer, 0, buffer.Length);
                 Assert.Equal(TestText.Length, ret);
                 var data = Encoding.UTF8.GetBytes(TestText);
+#if NET6_0_OR_GREATER
                 Assert.Equal(data, buffer[..ret]);
+#else
+                Assert.Equal(data, buffer.Take(ret).ToArray());
+#endif
             }
         }
 
@@ -222,7 +235,11 @@ namespace Cxx11BindingsSharp.Tests
 
             var truncated = File.ReadAllBytes(FileName);
             Assert.Equal(10, truncated.Length);
+#if NET6_0_OR_GREATER
             Assert.Equal(originalBytes[..10], truncated);
+#else
+            Assert.Equal(originalBytes.Take(10).ToArray(), truncated);
+#endif
 
             // Extend
             using (var sfs = File.OpenWrite(FileName))
@@ -234,8 +251,13 @@ namespace Cxx11BindingsSharp.Tests
 
             var extended = File.ReadAllBytes(FileName);
             Assert.Equal(20, extended.Length);
+#if NET6_0_OR_GREATER
             Assert.Equal(truncated, extended[..10]);
             Assert.All(extended[10..], b => Assert.Equal(0, b));
+#else
+            Assert.Equal(truncated, extended.Take(10).ToArray());
+            Assert.All(extended.Skip(10).ToArray(), b => Assert.Equal(0, b));
+#endif
         }
 
         [Fact]

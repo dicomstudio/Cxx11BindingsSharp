@@ -75,6 +75,7 @@ namespace Cxx11BindingsSharp
 
         internal static int ConvErrorToManaged(int errno)
         {
+#if NET6_0_OR_GREATER
             var ret = (ErrorCodes) errno switch
             {
                 ErrorCodes.C11_E_POINTER => new NullReferenceException().HResult,
@@ -86,9 +87,28 @@ namespace Cxx11BindingsSharp
             };
 
             return ret;
+#else
+            var err = (ErrorCodes) errno;
+            switch (err)
+            {
+                case ErrorCodes.C11_E_POINTER:
+                    return new NullReferenceException().HResult;
+                case ErrorCodes.C11_E_NOTSUPPORTED:
+                    return new NotSupportedException().HResult;
+                case ErrorCodes.C11_E_NOTIMPL:
+                    return new NotImplementedException().HResult;
+                case ErrorCodes.C11_E_INVALIDARG:
+                    return new ArgumentException(string.Empty).HResult;
+                case ErrorCodes.C11_E_IO:
+                    return new IOException().HResult;
+                default: throw new NotImplementedException($"Error code {errno} not implemented");
+            }
+#endif
         }
 
+#if NET6_0_OR_GREATER
         [DoesNotReturn]
+#endif
         private static void HandleException(int errno)
         {
             var errorCode = ConvErrorToManaged(errno);
@@ -127,9 +147,17 @@ namespace Cxx11BindingsSharp
     {
         private byte[] _buffer;
 
-        public C11StreamHandle(NativeLibrary.ReadDelegate? readFn, NativeLibrary.WriteDelegate? writeFn,
+        public C11StreamHandle(
+#if NET6_0_OR_GREATER
+            NativeLibrary.ReadDelegate? readFn, NativeLibrary.WriteDelegate? writeFn,
             NativeLibrary.SeekDelegate? seekFn, NativeLibrary.FlushDelegate? flushFn,
-            NativeLibrary.TruncDelegate? truncFn, int buffering = 4096) : base(ownsHandle: true)
+            NativeLibrary.TruncDelegate? truncFn,
+#else
+            NativeLibrary.ReadDelegate readFn, NativeLibrary.WriteDelegate writeFn,
+            NativeLibrary.SeekDelegate seekFn, NativeLibrary.FlushDelegate flushFn,
+            NativeLibrary.TruncDelegate truncFn,
+#endif
+            int buffering = 4096) : base(ownsHandle: true)
         {
             _buffer = new byte[buffering];
             // To avoid using `unsafe`, we add an extra layer of indirection:
@@ -165,7 +193,11 @@ namespace Cxx11BindingsSharp
             try
             {
                 Array.Resize(ref _buffer, count);
+#if NET6_0_OR_GREATER
                 var ret = Read!(self, _buffer, count);
+#else
+                var ret = Read(self, _buffer, count);
+#endif
                 Marshal.Copy(_buffer, 0, outBuffer, count);
                 return ret;
             }
@@ -181,7 +213,11 @@ namespace Cxx11BindingsSharp
             {
                 Array.Resize(ref _buffer, count);
                 Marshal.Copy(inBuffer, _buffer, 0, count);
+#if NET6_0_OR_GREATER
                 var ret = Write!(self, _buffer, count);
+#else
+                var ret = Write(self, _buffer, count);
+#endif
                 return ret;
             }
             catch (Exception ex)
@@ -190,15 +226,19 @@ namespace Cxx11BindingsSharp
             }
         }
 
-        internal NativeLibrary.TruncDelegate? Trunc { get; set; }
-
-        internal NativeLibrary.FlushDelegate? Flush { get; set; }
-
-        internal NativeLibrary.SeekDelegate? Seek { get; set; }
-
-        internal NativeLibrary.WriteDelegate? Write { get; set; }
-
+#if NET6_0_OR_GREATER
         internal NativeLibrary.ReadDelegate? Read { get; set; }
+        internal NativeLibrary.WriteDelegate? Write { get; set; }
+        internal NativeLibrary.SeekDelegate? Seek { get; set; }
+        internal NativeLibrary.FlushDelegate? Flush { get; set; }
+        internal NativeLibrary.TruncDelegate? Trunc { get; set; }
+#else
+        internal NativeLibrary.ReadDelegate Read { get; set; }
+        internal NativeLibrary.WriteDelegate Write { get; set; }
+        internal NativeLibrary.SeekDelegate Seek { get; set; }
+        internal NativeLibrary.FlushDelegate Flush { get; set; }
+        internal NativeLibrary.TruncDelegate Trunc { get; set; }
+#endif
 
         public static implicit operator IntPtr(C11StreamHandle c11StreamHandle)
         {

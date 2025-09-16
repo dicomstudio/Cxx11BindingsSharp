@@ -1,8 +1,9 @@
 using System;
 using System.IO;
-using System.Runtime.InteropServices;
+#if !NET6_0_OR_GREATER
+using System.Linq;
+#endif
 using System.Text;
-using Microsoft.Win32.SafeHandles;
 using Xunit;
 
 namespace Cxx11BindingsSharp.Tests
@@ -11,7 +12,13 @@ namespace Cxx11BindingsSharp.Tests
     {
         private const string TestText = "The quick brown fox jumps over the lazy dog";
 
-        private static string CreateTestFile(string? fileName = null, string? content = null)
+        private static string CreateTestFile(
+#if NET6_0_OR_GREATER
+            string? fileName = null, string? content = null
+#else
+            string fileName = null, string content = null
+#endif
+        )
         {
             var filename = fileName ?? "C11FileStreamTests.txt";
             File.WriteAllText(filename, content ?? TestText, Encoding.ASCII);
@@ -25,12 +32,18 @@ namespace Cxx11BindingsSharp.Tests
             var filename = CreateTestFile(tempFilePath);
             try
             {
-                using var c11FileStream = new Cxx11FileStream(filename, FileMode.Open, FileAccess.Read);
-                var buffer = new byte[512];
-                var ret = c11FileStream.Read(buffer, 0, buffer.Length);
-                Assert.Equal(TestText.Length, ret);
-                var data = Encoding.UTF8.GetBytes(TestText);
-                Assert.Equal(data, buffer[..ret]);
+                using (var c11FileStream = new Cxx11FileStream(filename, FileMode.Open, FileAccess.Read))
+                {
+                    var buffer = new byte[512];
+                    var ret = c11FileStream.Read(buffer, 0, buffer.Length);
+                    Assert.Equal(TestText.Length, ret);
+                    var data = Encoding.UTF8.GetBytes(TestText);
+#if NET6_0_OR_GREATER
+                    Assert.Equal(data, buffer[..ret]);
+#else
+                    Assert.Equal(data, buffer.Take(ret).ToArray());
+#endif
+                }
             }
             finally
             {
@@ -47,9 +60,11 @@ namespace Cxx11BindingsSharp.Tests
             {
                 {
                     // Open FileStream for writing
-                    using var fs = new Cxx11FileStream(filename, FileMode.Create, FileAccess.Write);
-                    var bytes = Encoding.UTF8.GetBytes(TestText);
-                    fs.Write(bytes, 0, bytes.Length);
+                    using (var fs = new Cxx11FileStream(filename, FileMode.Create, FileAccess.Write))
+                    {
+                        var bytes = Encoding.UTF8.GetBytes(TestText);
+                        fs.Write(bytes, 0, bytes.Length);
+                    }
                 }
 
                 var allText = File.ReadAllText(filename, Encoding.ASCII);
@@ -70,10 +85,12 @@ namespace Cxx11BindingsSharp.Tests
             {
                 File.WriteAllText(filename, content, Encoding.ASCII);
 
-                using var fs = new Cxx11FileStream(filename, FileMode.Open, FileAccess.Read);
-                fs.Seek(2, SeekOrigin.Begin); // Seek to the third character ('c')
-                int value = fs.ReadByte();
-                Assert.Equal((byte) 'c', value);
+                using (var fs = new Cxx11FileStream(filename, FileMode.Open, FileAccess.Read))
+                {
+                    fs.Seek(2, SeekOrigin.Begin); // Seek to the third character ('c')
+                    var value = fs.ReadByte();
+                    Assert.Equal((byte) 'c', value);
+                }
             }
             finally
             {
