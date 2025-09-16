@@ -93,6 +93,8 @@ jobs:
         with:
           submodules: true
           fetch-depth: 0
+      - name: Nuget SDK info
+        run: dotnet --list-sdks
       - name: Nuget pack
         run: dotnet pack -p:Version=0.0.0 --configuration Release
 
@@ -123,6 +125,8 @@ jobs:
           fetch-depth: 0
       - name: Extract version from tag
         run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
+      - name: Nuget SDK info
+        run: dotnet --list-sdks
       - name: Nuget pack
         run: dotnet pack -p:Version=${{ env.VERSION }} --configuration Release --include-symbols --include-source
       - name: Add GitHub NuGet source
