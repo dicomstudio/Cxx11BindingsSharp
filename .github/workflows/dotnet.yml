@@ -78,6 +78,7 @@ jobs:
         run: dotnet build --no-restore
       - name: Manual copy
         run: |
+          cp build/lib/Release/Cxx11BindingsTests.dll tests/Cxx11BindingsSharp.Tests/bin/Debug/net48/
           cp build/lib/Release/Cxx11BindingsTests.dll tests/Cxx11BindingsSharp.Tests/bin/Debug/net6.0/
           cp build/lib/Release/Cxx11BindingsTests.dll tests/Cxx11BindingsSharp.Tests/bin/Debug/net8.0/
       - name: Test

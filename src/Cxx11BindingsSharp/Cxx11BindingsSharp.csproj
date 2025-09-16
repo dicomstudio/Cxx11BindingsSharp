@@ -1,20 +1,23 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup Condition="'$(VisualStudioVersion)'=='16.0'">
         <TargetFramework>net6.0</TargetFramework>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(VisualStudioVersion)'=='17.0'">
-        <TargetFrameworks>net6.0;net8.0</TargetFrameworks>
+        <TargetFrameworks>net48;net6.0;net8.0</TargetFrameworks>
     </PropertyGroup>
 
     <!-- Dump version for clarity -->
     <Target Name="TestVersion" AfterTargets="build">
-        <Message Text="version=>$(VisualStudioVersion)" Importance="high"/>
+        <Message Text="version=&gt;$(VisualStudioVersion)" Importance="high" />
     </Target>
+
+    <PropertyGroup Condition="'$(TargetFramework)' != 'net48'">
+      <Nullable>enable</Nullable>
+    </PropertyGroup>
 
     <PropertyGroup>
         <Platforms>AnyCPU;x64;x86</Platforms>
-        <Nullable>enable</Nullable>
         <Authors>DicomStudio</Authors>
         <PackageTags>native;C++11;Stream</PackageTags>
         <PackageReadmeFile>README.md</PackageReadmeFile>
@@ -41,9 +44,9 @@ Akin to System.Runtime.InteropServices.ComTypes.IStream on windows.</Description
     </PropertyGroup>
 
     <ItemGroup>
-        <None Include="../../native/cxx11bindings.h" Pack="true" PackagePath="build/native/include"/>
-        <None Include="../../native/cxx11bindings.hxx" Pack="true" PackagePath="build/native/include"/>
-        <None Include="../../README.md" Pack="true" PackagePath="/"/>
+        <None Include="../../native/cxx11bindings.h" Pack="true" PackagePath="build/native/include" />
+        <None Include="../../native/cxx11bindings.hxx" Pack="true" PackagePath="build/native/include" />
+        <None Include="../../README.md" Pack="true" PackagePath="/" />
     </ItemGroup>
 
     <ItemGroup>

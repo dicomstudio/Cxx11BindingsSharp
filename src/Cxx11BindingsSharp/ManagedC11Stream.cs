@@ -22,7 +22,13 @@ namespace Cxx11BindingsSharp
         /// Buffered stream wrapper.
         /// </summary>
         /// <param name="stream"></param>
-        public ManagedC11Stream(Stream? stream)
+        public ManagedC11Stream(
+#if NET6_0_OR_GREATER
+            Stream? stream
+#else
+            Stream stream
+#endif
+        )
         {
             _innerStream = stream ?? throw new ArgumentNullException(nameof(stream));
             // FIXME: should buffering depend on the inner stream's buffering?
@@ -57,6 +63,7 @@ namespace Cxx11BindingsSharp
 
         public static SeekOrigin ToSeekOrigin(SeekDirs seekDir)
         {
+#if NET6_0_OR_GREATER
             return seekDir switch
             {
                 SeekDirs.Begin => SeekOrigin.Begin,
@@ -64,10 +71,24 @@ namespace Cxx11BindingsSharp
                 SeekDirs.End => SeekOrigin.End,
                 _ => throw new ArgumentOutOfRangeException(nameof(seekDir), seekDir, "Invalid SeekDir value")
             };
+#else
+            switch (seekDir)
+            {
+                case SeekDirs.Begin:
+                    return SeekOrigin.Begin;
+                case SeekDirs.Current:
+                    return SeekOrigin.Current;
+                case SeekDirs.End:
+                    return SeekOrigin.End;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(seekDir), seekDir, "Invalid SeekDir value");
+            }
+#endif
         }
 
         public static SeekDirs ToSeekDirs(SeekOrigin origin)
         {
+#if NET6_0_OR_GREATER
             return origin switch
             {
                 SeekOrigin.Begin => SeekDirs.Begin,
@@ -75,6 +96,19 @@ namespace Cxx11BindingsSharp
                 SeekOrigin.End => SeekDirs.End,
                 _ => throw new ArgumentOutOfRangeException(nameof(origin), origin, "Invalid SeekOrigin value")
             };
+#else
+            switch (origin)
+            {
+                case SeekOrigin.Begin:
+                    return SeekDirs.Begin;
+                case SeekOrigin.Current:
+                    return SeekDirs.Current;
+                case SeekOrigin.End:
+                    return SeekDirs.End;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(origin), origin, "Invalid SeekOrigin value");
+            }
+#endif
         }
 
         private long FSeek(IntPtr self, long offset, int seekDir)
