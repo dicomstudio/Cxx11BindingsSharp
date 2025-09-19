@@ -33,9 +33,6 @@ namespace Cxx11BindingsSharp
         // NotSupportedException
         C11_E_NOTSUPPORTED,
 
-        // NotImplementedException
-        C11_E_NOTIMPL,
-
         // InvalidArgument
         C11_E_INVALIDARG,
 
@@ -90,7 +87,6 @@ namespace Cxx11BindingsSharp
             {
                 ErrorToHResult.Add(ErrorCodes.C11_E_POINTER, new NullReferenceException().HResult);
                 ErrorToHResult.Add(ErrorCodes.C11_E_NOTSUPPORTED, new NotSupportedException().HResult);
-                ErrorToHResult.Add(ErrorCodes.C11_E_NOTIMPL, new NotImplementedException().HResult);
                 ErrorToHResult.Add(ErrorCodes.C11_E_INVALIDARG, new ArgumentException(string.Empty).HResult);
                 ErrorToHResult.Add(ErrorCodes.C11_E_ARGUMENTOUTOFRANGE, new ArgumentOutOfRangeException().HResult);
                 ErrorToHResult.Add(ErrorCodes.C11_E_OBJECTDISPOSED, new ObjectDisposedException(string.Empty).HResult);
