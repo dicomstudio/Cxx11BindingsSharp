@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Runtime.InteropServices;
@@ -38,6 +39,12 @@ namespace Cxx11BindingsSharp
         // InvalidArgument
         C11_E_INVALIDARG,
 
+        // ArgumentOutOfRangeException
+        C11_E_ARGUMENTOUTOFRANGE,
+
+        // ObjectDisposedException
+        C11_E_OBJECTDISPOSED,
+
         // IOException
         C11_E_IO,
     };
@@ -73,66 +80,54 @@ namespace Cxx11BindingsSharp
 
         #region c11 error code
 
-        internal static int ConvErrorToManaged(int errno)
+        internal static class ErrorCodeMap
         {
-#if NET6_0_OR_GREATER
-            var ret = (ErrorCodes) errno switch
-            {
-                ErrorCodes.C11_E_POINTER => new NullReferenceException().HResult,
-                ErrorCodes.C11_E_NOTSUPPORTED => new NotSupportedException().HResult,
-                ErrorCodes.C11_E_NOTIMPL => new NotImplementedException().HResult,
-                ErrorCodes.C11_E_INVALIDARG => new ArgumentException(string.Empty).HResult,
-                ErrorCodes.C11_E_IO => new IOException().HResult,
-                _ => throw new NotImplementedException($"Error code {errno} not implemented")
-            };
+            private static readonly Dictionary<ErrorCodes, int> ErrorToHResult = new Dictionary<ErrorCodes, int>();
+            private static readonly Dictionary<int, ErrorCodes> HResultToError = new Dictionary<int, ErrorCodes>();
 
-            return ret;
-#else
-            var err = (ErrorCodes) errno;
-            switch (err)
+            // https://learn.microsoft.com/en-us/dotnet/framework/interop/how-to-map-hresults-and-exceptions
+            static ErrorCodeMap()
             {
-                case ErrorCodes.C11_E_POINTER:
-                    return new NullReferenceException().HResult;
-                case ErrorCodes.C11_E_NOTSUPPORTED:
-                    return new NotSupportedException().HResult;
-                case ErrorCodes.C11_E_NOTIMPL:
-                    return new NotImplementedException().HResult;
-                case ErrorCodes.C11_E_INVALIDARG:
-                    return new ArgumentException(string.Empty).HResult;
-                case ErrorCodes.C11_E_IO:
-                    return new IOException().HResult;
-                default: throw new NotImplementedException($"Error code {errno} not implemented");
-            }
-#endif
-        }
+                ErrorToHResult.Add(ErrorCodes.C11_E_POINTER, new NullReferenceException().HResult);
+                ErrorToHResult.Add(ErrorCodes.C11_E_NOTSUPPORTED, new NotSupportedException().HResult);
+                ErrorToHResult.Add(ErrorCodes.C11_E_NOTIMPL, new NotImplementedException().HResult);
+                ErrorToHResult.Add(ErrorCodes.C11_E_INVALIDARG, new ArgumentException(string.Empty).HResult);
+                ErrorToHResult.Add(ErrorCodes.C11_E_ARGUMENTOUTOFRANGE, new ArgumentOutOfRangeException().HResult);
+                ErrorToHResult.Add(ErrorCodes.C11_E_OBJECTDISPOSED, new ObjectDisposedException(string.Empty).HResult);
+                ErrorToHResult.Add(ErrorCodes.C11_E_IO, new IOException().HResult);
 
-#if NET6_0_OR_GREATER
-        [DoesNotReturn]
-#endif
-        private static void HandleException(int errno)
-        {
-            var errorCode = ConvErrorToManaged(errno);
-            var ex = Marshal.GetExceptionForHR(errorCode);
-            if (ex == null)
-            {
-                throw new InvalidOperationException("Program error: cannot convert error code to exception");
+                foreach (var kvp in ErrorToHResult)
+                    HResultToError.Add(kvp.Value, kvp.Key);
             }
 
-            throw ex;
+            public static int ToHResult(int errno)
+            {
+                var code = (ErrorCodes) errno;
+                return ErrorToHResult.TryGetValue(code, out var hr)
+                    ? hr
+                    : throw new NotImplementedException("Error code " + code + " not implemented");
+            }
+
+            public static int ToErrorCode(int hresult)
+            {
+                return HResultToError.TryGetValue(hresult, out var code)
+                    ? (int) code
+                    : throw new NotImplementedException("HResult " + hresult + " not implemented");
+            }
         }
 
         internal static long HandleExceptionOrReturnValue(long err)
         {
             if (err >= 0) return err;
             var errno = checked((int) err); // throws OverflowException if out of range
-            HandleException(errno);
+            Marshal.ThrowExceptionForHR(ErrorCodeMap.ToHResult(errno));
             return 0; // Unreachable, but required for compilation
         }
 
         internal static int HandleExceptionOrReturnValue(int errno)
         {
             if (errno >= 0) return errno;
-            HandleException(errno);
+            Marshal.ThrowExceptionForHR(ErrorCodeMap.ToHResult(errno));
             return 0; // Unreachable, but required for compilation
         }
 
@@ -203,7 +198,7 @@ namespace Cxx11BindingsSharp
             }
             catch (Exception ex)
             {
-                return ex.HResult;
+                return (int) NativeLibrary.ErrorCodeMap.ToErrorCode(ex.HResult);
             }
         }
 
@@ -222,7 +217,7 @@ namespace Cxx11BindingsSharp
             }
             catch (Exception ex)
             {
-                return ex.HResult;
+                return (int) NativeLibrary.ErrorCodeMap.ToErrorCode(ex.HResult);
             }
         }
 

@@ -120,7 +120,7 @@ namespace Cxx11BindingsSharp.Tests
                 throw new IOException($"Cannot open file: {filename} with mode: {mode}");
             }
 
-            // how is a good time to compute CanRead/CanWrite/CanSeek:
+            // now is a good time to compute CanRead/CanWrite/CanSeek:
             (CanRead, CanWrite, CanSeek) = ComputeCapabilities(fileMode, fileAccess, fileShare);
         }
 
@@ -550,7 +550,7 @@ namespace Cxx11BindingsSharp.Tests
 #endif
                 Assert.True(ret < 0);
                 var hresult = (new ArgumentNullException()).HResult;
-                Assert.Equal(hresult, ret);
+                Assert.Equal(NativeLibrary.ErrorCodeMap.ToErrorCode(hresult), ret);
             }
         }
 
@@ -566,7 +566,7 @@ namespace Cxx11BindingsSharp.Tests
                 var ret = NativeLibraryTests.test_c11_stream_write(managedC11Stream, data, data.Length);
                 Assert.True(ret < 0);
                 var hresult = (new NotSupportedException()).HResult;
-                Assert.Equal(hresult, ret);
+                Assert.Equal(NativeLibrary.ErrorCodeMap.ToErrorCode(hresult), ret);
             }
         }
 
@@ -582,7 +582,7 @@ namespace Cxx11BindingsSharp.Tests
                 var ret = NativeLibraryTests.test_c11_stream_write(managedC11Stream, data, -42);
                 Assert.True(ret < 0);
                 var hresult = (new ArgumentOutOfRangeException()).HResult;
-                Assert.Equal(hresult, ret);
+                Assert.Equal(NativeLibrary.ErrorCodeMap.ToErrorCode(hresult), ret);
             }
         }
 
@@ -598,7 +598,7 @@ namespace Cxx11BindingsSharp.Tests
             var ret = NativeLibraryTests.test_c11_stream_write(managedC11Stream, data, data.Length);
             Assert.True(ret < 0);
             var hresult = (new ObjectDisposedException(string.Empty)).HResult;
-            Assert.Equal(hresult, ret);
+            Assert.Equal(NativeLibrary.ErrorCodeMap.ToErrorCode(hresult), ret);
         }
 
         [Fact]
@@ -611,7 +611,7 @@ namespace Cxx11BindingsSharp.Tests
             var ret = NativeLibraryTests.test_c11_stream_trunc(managedC11Stream, 4096);
             Assert.True(ret < 0);
             var hresult = (new NotSupportedException()).HResult;
-            Assert.Equal(hresult, ret);
+            Assert.Equal(NativeLibrary.ErrorCodeMap.ToErrorCode(hresult), ret);
         }
     }
 }
