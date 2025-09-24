@@ -36,30 +36,30 @@ namespace Cxx11BindingsSharp.Tests
         #region c11 file stream
 
         [DllImport(LibraryName, CallingConvention = CallConv, ExactSpelling = true, CharSet = CharSet.Unicode)]
-        internal static extern int test_c11_file_stream_create1(out IntPtr pHandle,
+        internal static extern int c11_file_stream_create1(out IntPtr pHandle,
             [MarshalAs(UnmanagedType.LPUTF8Str)] string filename, [MarshalAs(UnmanagedType.LPUTF8Str)] string mode);
 
         [DllImport(LibraryName, CallingConvention = CallConv, ExactSpelling = true, CharSet = CharSet.Unicode)]
-        internal static extern int test_c11_file_stream_create2(out IntPtr pHandle,
+        internal static extern int c11_file_stream_create2(out IntPtr pHandle,
             [MarshalAs(UnmanagedType.LPWStr)] string filename, [MarshalAs(UnmanagedType.LPWStr)] string mode);
 
         [DllImport(LibraryName, CallingConvention = CallConv, ExactSpelling = true)]
-        internal static extern int test_c11_file_stream_destroy(IntPtr handle);
+        internal static extern int c11_file_stream_destroy(IntPtr handle);
 
         #endregion
 
         #region cxx11 file stream
 
         [DllImport(LibraryName, CallingConvention = CallConv, ExactSpelling = true, CharSet = CharSet.Unicode)]
-        internal static extern int test_cxx11_file_stream_create1(out IntPtr pHandle,
+        internal static extern int cxx11_file_stream_create1(out IntPtr pHandle,
             [MarshalAs(UnmanagedType.LPUTF8Str)] string filename, [MarshalAs(UnmanagedType.LPUTF8Str)] string mode);
 
         [DllImport(LibraryName, CallingConvention = CallConv, ExactSpelling = true, CharSet = CharSet.Unicode)]
-        internal static extern int test_cxx11_file_stream_create2(out IntPtr pHandle,
+        internal static extern int cxx11_file_stream_create2(out IntPtr pHandle,
             [MarshalAs(UnmanagedType.LPWStr)] string filename, [MarshalAs(UnmanagedType.LPWStr)] string mode);
 
         [DllImport(LibraryName, CallingConvention = CallConv, ExactSpelling = true)]
-        internal static extern int test_cxx11_file_stream_destroy(IntPtr handle);
+        internal static extern int cxx11_file_stream_destroy(IntPtr handle);
 
         #endregion
     }
@@ -113,8 +113,8 @@ namespace Cxx11BindingsSharp.Tests
             var mode = ToFopenMode(fileMode, fileAccess, fileShare);
 
             var ret = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-                ? NativeLibraryTests.test_c11_file_stream_create2(out _c11StreamPtr, filename, mode)
-                : NativeLibraryTests.test_c11_file_stream_create1(out _c11StreamPtr, filename, mode);
+                ? NativeLibraryTests.c11_file_stream_create2(out _c11StreamPtr, filename, mode)
+                : NativeLibraryTests.c11_file_stream_create1(out _c11StreamPtr, filename, mode);
             if (ret < 0)
             {
                 throw new IOException($"Cannot open file: {filename} with mode: {mode}");
@@ -144,7 +144,7 @@ namespace Cxx11BindingsSharp.Tests
             if (disposing)
             {
                 // Dispose managed resources here
-                var ret = NativeLibraryTests.test_c11_file_stream_destroy(_c11StreamPtr);
+                var ret = NativeLibraryTests.c11_file_stream_destroy(_c11StreamPtr);
                 if (ret < 0)
                 {
                     throw new IOException("Cannot destroy file");
@@ -260,8 +260,8 @@ namespace Cxx11BindingsSharp.Tests
             var mode = ToFopenMode(fileMode, fileAccess, fileShare);
 
             var ret = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-                ? NativeLibraryTests.test_cxx11_file_stream_create2(out _cxx11StreamPtr, filename, mode)
-                : NativeLibraryTests.test_cxx11_file_stream_create1(out _cxx11StreamPtr, filename, mode);
+                ? NativeLibraryTests.cxx11_file_stream_create2(out _cxx11StreamPtr, filename, mode)
+                : NativeLibraryTests.cxx11_file_stream_create1(out _cxx11StreamPtr, filename, mode);
             if (ret < 0)
             {
                 throw new IOException($"Cannot open file: {filename} with mode: {mode}");
@@ -291,7 +291,7 @@ namespace Cxx11BindingsSharp.Tests
             if (disposing)
             {
                 // Dispose managed resources here
-                var ret = NativeLibraryTests.test_cxx11_file_stream_destroy(_cxx11StreamPtr);
+                var ret = NativeLibraryTests.cxx11_file_stream_destroy(_cxx11StreamPtr);
                 if (ret < 0)
                 {
                     throw new IOException("Cannot destroy file");
