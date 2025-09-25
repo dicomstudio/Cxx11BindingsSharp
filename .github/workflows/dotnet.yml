@@ -86,7 +86,7 @@ jobs:
 
   fake-pack:
     if: ${{ !startsWith(github.ref, 'refs/tags/') }}
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     needs: [ linux-amd64, windows-amd64 ]
     steps:
       - name: Checkout with submodules
@@ -114,7 +114,7 @@ jobs:
 # NuGet enforces and interprets these semantics for dependency resolution and package updates.
   publish-github-nuget:
     if: startsWith(github.ref, 'refs/tags/')
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     permissions:
       packages: write
     needs: [ linux-amd64, windows-amd64 ]
@@ -125,7 +125,7 @@ jobs:
           submodules: true
           fetch-depth: 0
       - name: Extract version from tag
-        run: echo "VERSION=$($env:GITHUB_REF -replace '^refs/tags/v','')" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
       - name: Nuget SDK info
         run: dotnet --list-sdks
       - name: Nuget pack
