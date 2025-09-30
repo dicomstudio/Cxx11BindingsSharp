@@ -1,6 +1,8 @@
 using System;
+#if NET6_0_OR_GREATER
+using System.Buffers;
+#endif
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Runtime.InteropServices;
 using Microsoft.Win32.SafeHandles;
@@ -136,7 +138,9 @@ namespace Cxx11BindingsSharp
     /// </summary>
     public sealed class C11StreamHandle : SafeHandleMinusOneIsInvalid
     {
+#if !NET6_0_OR_GREATER
         private byte[] _buffer;
+#endif
 
         public C11StreamHandle(
 #if NET6_0_OR_GREATER
@@ -150,7 +154,9 @@ namespace Cxx11BindingsSharp
 #endif
             int buffering = 4096) : base(ownsHandle: true)
         {
+#if !NET6_0_OR_GREATER
             _buffer = new byte[buffering];
+#endif
             // To avoid using `unsafe`, we add an extra layer of indirection:
             NativeLibrary.BufReadDelegate bufReadFn = BufRead;
             NativeLibrary.BufWriteDelegate bufWriteFn = BufWrite;
@@ -179,17 +185,32 @@ namespace Cxx11BindingsSharp
         private NativeLibrary.BufReadDelegate BufReadDelegate { get; set; }
         private NativeLibrary.BufWriteDelegate BufWriteDelegate { get; set; }
 
+        private byte[] EnsureBufferSize(int newSize)
+        {
+#if NET6_0_OR_GREATER
+            var buffer = ArrayPool<byte>.Shared.Rent(newSize);
+            return buffer;
+#else
+            if (_buffer.Length < newSize)
+            {
+                Array.Resize(ref _buffer, newSize);
+            }
+
+            return _buffer;
+#endif
+        }
+
         private int BufRead(IntPtr self, IntPtr outBuffer, int count)
         {
             try
             {
-                Array.Resize(ref _buffer, count);
+                var buffer = EnsureBufferSize(count);
 #if NET6_0_OR_GREATER
-                var ret = Read!(self, _buffer, count);
+                var ret = Read!(self, buffer, count);
 #else
-                var ret = Read(self, _buffer, count);
+                var ret = Read(self, buffer, count);
 #endif
-                Marshal.Copy(_buffer, 0, outBuffer, count);
+                Marshal.Copy(buffer, 0, outBuffer, count);
                 return ret;
             }
             catch (Exception ex)
@@ -202,12 +223,12 @@ namespace Cxx11BindingsSharp
         {
             try
             {
-                Array.Resize(ref _buffer, count);
-                Marshal.Copy(inBuffer, _buffer, 0, count);
+                var buffer = EnsureBufferSize(count);
+                Marshal.Copy(inBuffer, buffer, 0, count);
 #if NET6_0_OR_GREATER
-                var ret = Write!(self, _buffer, count);
+                var ret = Write!(self, buffer, count);
 #else
-                var ret = Write(self, _buffer, count);
+                var ret = Write(self, buffer, count);
 #endif
                 return ret;
             }
