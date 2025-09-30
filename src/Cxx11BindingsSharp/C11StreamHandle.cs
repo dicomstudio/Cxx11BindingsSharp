@@ -215,7 +215,7 @@ namespace Cxx11BindingsSharp
             }
             catch (Exception ex)
             {
-                return (int) NativeLibrary.ErrorCodeMap.ToErrorCode(ex.HResult);
+                return NativeLibrary.ErrorCodeMap.ToErrorCode(ex.HResult);
             }
         }
 
@@ -234,7 +234,7 @@ namespace Cxx11BindingsSharp
             }
             catch (Exception ex)
             {
-                return (int) NativeLibrary.ErrorCodeMap.ToErrorCode(ex.HResult);
+                return NativeLibrary.ErrorCodeMap.ToErrorCode(ex.HResult);
             }
         }
 
