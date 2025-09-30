@@ -46,7 +46,7 @@ Akin to System.Runtime.InteropServices.ComTypes.IStream on windows.</Description
     <ItemGroup>
         <None Include="../../native/include/cxx11bindings/stream.h" Pack="true" PackagePath="build/native/include/cxx11bindings" />
         <None Include="../../native/include/cxx11bindings/streambuf.hxx" Pack="true" PackagePath="build/native/include/cxx11bindings" />
-        <None Include="../../README.md" Pack="true" PackagePath="/" />
+        <None Include="..\..\README.md" Pack="true" PackagePath="/" />
     </ItemGroup>
 
     <ItemGroup>
