@@ -155,6 +155,11 @@ namespace Cxx11BindingsSharp
         {
             return true;
         }
+
+        public static implicit operator IntPtr(C11StreamHandle c11StreamHandle)
+        {
+            return c11StreamHandle.handle;
+        }
     }
 
     public sealed class C11StreamHandleNative : C11StreamHandle
@@ -299,10 +304,6 @@ namespace Cxx11BindingsSharp
         internal NativeLibrary.TruncDelegate Trunc { get; set; }
 #endif
 
-        public static implicit operator IntPtr(C11StreamHandleManaged c11StreamHandleManaged)
-        {
-            return c11StreamHandleManaged.handle;
-        }
 
         protected override bool ReleaseHandle()
         {
