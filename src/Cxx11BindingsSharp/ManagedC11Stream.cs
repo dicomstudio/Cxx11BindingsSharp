@@ -31,8 +31,23 @@ namespace Cxx11BindingsSharp
         )
         {
             _innerStream = stream ?? throw new ArgumentNullException(nameof(stream));
-            // FIXME: should buffering depend on the inner stream's buffering?
-            _c11Stream = new C11StreamHandleManaged(FRead, FWrite, FSeek, FFlush, FTrunc);
+            if (stream is FileStream fileStream)
+            {
+                try
+                {
+                    _c11Stream = new C11StreamHandleNative(fileStream.SafeFileHandle);
+                }
+                catch (EntryPointNotFoundException)
+                {
+                    // fallback to managed implementation
+                    _c11Stream = new C11StreamHandleManaged(FRead, FWrite, FSeek, FFlush, FTrunc);
+                }
+            }
+            else
+            {
+                // FIXME: should buffering depend on the inner stream's buffering?
+                _c11Stream = new C11StreamHandleManaged(FRead, FWrite, FSeek, FFlush, FTrunc);
+            }
         }
 
         private int FRead(IntPtr self, byte[] buffer, int count)
