@@ -162,7 +162,7 @@ namespace Cxx11BindingsSharp
         }
     }
 
-    public sealed class C11StreamHandleNative : C11StreamHandle
+    internal sealed class C11StreamHandleNative : C11StreamHandle
     {
         public C11StreamHandleNative(SafeFileHandle sfh)
         {
@@ -188,7 +188,7 @@ namespace Cxx11BindingsSharp
     /// Main handle for the C11 streambuf struct. Can be used instead of a plain `IntPtr` in native p/invoke calls.
     /// Intended use is for c#/native author to access easily the underlying native code.
     /// </summary>
-    public sealed class C11StreamHandleManaged : C11StreamHandle
+    internal sealed class C11StreamHandleManaged : C11StreamHandle
     {
 #if !NET6_0_OR_GREATER
         private byte[] _buffer;
