@@ -77,6 +77,19 @@ namespace Cxx11BindingsSharp
 
         #endregion
 
+        #region c11 file descriptor
+
+        private const string LibraryName = "Cxx11BindingsTests";
+        private const CallingConvention CallConv = CallingConvention.Cdecl;
+
+        [DllImport(LibraryName, CallingConvention = CallConv, ExactSpelling = true)]
+        internal static extern int c11_handle_stream_init(out IntPtr pHandle, IntPtr intPtr);
+
+        [DllImport(LibraryName, CallingConvention = CallConv, ExactSpelling = true)]
+        internal static extern int c11_fd_stream_init(out IntPtr pHandle, IntPtr intPtr);
+
+        #endregion
+
         #region c11 error code
 
         internal static class ErrorCodeMap
@@ -132,11 +145,45 @@ namespace Cxx11BindingsSharp
         #endregion
     }
 
+    public class C11StreamHandle : SafeHandleMinusOneIsInvalid
+    {
+        protected C11StreamHandle() : base(ownsHandle: true)
+        {
+        }
+
+        protected override bool ReleaseHandle()
+        {
+            return true;
+        }
+    }
+
+    public sealed class C11StreamHandleNative : C11StreamHandle
+    {
+        public C11StreamHandleNative(SafeFileHandle sfh)
+        {
+            var ptr = sfh.DangerousGetHandle();
+            var ret = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                ? NativeLibrary.c11_handle_stream_init(out handle, ptr)
+                : NativeLibrary.c11_fd_stream_init(out handle, ptr);
+            if (ret < 0)
+            {
+                throw new IOException($"Cannot handle file {ptr}");
+            }
+        }
+
+        protected override bool ReleaseHandle()
+        {
+            // NativeLibraryTests.c11_handle_stream_delete(handle)
+            return true;
+        }
+    }
+
+
     /// <summary>
     /// Main handle for the C11 streambuf struct. Can be used instead of a plain `IntPtr` in native p/invoke calls.
     /// Intended use is for c#/native author to access easily the underlying native code.
     /// </summary>
-    public sealed class C11StreamHandleManaged : SafeHandleMinusOneIsInvalid
+    public sealed class C11StreamHandleManaged : C11StreamHandle
     {
 #if !NET6_0_OR_GREATER
         private byte[] _buffer;
@@ -152,7 +199,7 @@ namespace Cxx11BindingsSharp
             NativeLibrary.SeekDelegate seekFn, NativeLibrary.FlushDelegate flushFn,
             NativeLibrary.TruncDelegate truncFn,
 #endif
-            int buffering = 4096) : base(ownsHandle: true)
+            int buffering = 4096)
         {
 #if !NET6_0_OR_GREATER
             _buffer = new byte[buffering];
