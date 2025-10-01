@@ -3,12 +3,12 @@ using Xunit;
 
 namespace Cxx11BindingsSharp.Tests
 {
-    public class C11StreamHandleTests
+    public class C11StreamHandleManagedTests
     {
         [Fact]
         public void NullFunction_ShouldReturnNotSupportedException()
         {
-            var c11Stream = new C11StreamHandle(null, null, null, null, null);
+            var c11Stream = new C11StreamHandleManaged(null, null, null, null, null);
             var hresult = (new NotSupportedException()).HResult;
             var buffer = new byte[4096];
             var ret = NativeLibraryTests.test_c11_stream_read(c11Stream, buffer, buffer.Length);

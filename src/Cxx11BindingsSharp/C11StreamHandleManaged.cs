@@ -136,13 +136,13 @@ namespace Cxx11BindingsSharp
     /// Main handle for the C11 streambuf struct. Can be used instead of a plain `IntPtr` in native p/invoke calls.
     /// Intended use is for c#/native author to access easily the underlying native code.
     /// </summary>
-    public sealed class C11StreamHandle : SafeHandleMinusOneIsInvalid
+    public sealed class C11StreamHandleManaged : SafeHandleMinusOneIsInvalid
     {
 #if !NET6_0_OR_GREATER
         private byte[] _buffer;
 #endif
 
-        public C11StreamHandle(
+        public C11StreamHandleManaged(
 #if NET6_0_OR_GREATER
             NativeLibrary.ReadDelegate? readFn, NativeLibrary.WriteDelegate? writeFn,
             NativeLibrary.SeekDelegate? seekFn, NativeLibrary.FlushDelegate? flushFn,
@@ -252,9 +252,9 @@ namespace Cxx11BindingsSharp
         internal NativeLibrary.TruncDelegate Trunc { get; set; }
 #endif
 
-        public static implicit operator IntPtr(C11StreamHandle c11StreamHandle)
+        public static implicit operator IntPtr(C11StreamHandleManaged c11StreamHandleManaged)
         {
-            return c11StreamHandle.handle;
+            return c11StreamHandleManaged.handle;
         }
 
         protected override bool ReleaseHandle()

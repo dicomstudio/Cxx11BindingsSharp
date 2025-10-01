@@ -16,7 +16,7 @@ namespace Cxx11BindingsSharp
         private readonly Stream _innerStream;
 
         // the managed stream handle
-        private readonly C11StreamHandle _c11Stream;
+        private readonly C11StreamHandleManaged _c11Stream;
 
         /// <summary>
         /// Buffered stream wrapper.
@@ -32,7 +32,7 @@ namespace Cxx11BindingsSharp
         {
             _innerStream = stream ?? throw new ArgumentNullException(nameof(stream));
             // FIXME: should buffering depend on the inner stream's buffering?
-            _c11Stream = new C11StreamHandle(FRead, FWrite, FSeek, FFlush, FTrunc);
+            _c11Stream = new C11StreamHandleManaged(FRead, FWrite, FSeek, FFlush, FTrunc);
         }
 
         private int FRead(IntPtr self, byte[] buffer, int count)
@@ -165,7 +165,7 @@ namespace Cxx11BindingsSharp
         }
 
 
-        public static implicit operator C11StreamHandle(ManagedC11Stream managedC11Stream)
+        public static implicit operator C11StreamHandleManaged(ManagedC11Stream managedC11Stream)
         {
             return managedC11Stream._c11Stream;
         }
