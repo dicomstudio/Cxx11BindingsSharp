@@ -77,14 +77,15 @@ namespace Cxx11BindingsSharp.Tests
 
     public sealed class C11StreamHandle2 : SafeHandleMinusOneIsInvalid
     {
-        public C11StreamHandle2(IntPtr intPtr) : base(ownsHandle: true)
+        public C11StreamHandle2(SafeFileHandle sfh) : base(ownsHandle: true)
         {
+            var ptr = sfh.DangerousGetHandle();
             var ret = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-                ? NativeLibraryTests.c11_handle_stream_init(out handle, intPtr)
-                : NativeLibraryTests.c11_fd_stream_init(out handle, intPtr);
+                ? NativeLibraryTests.c11_handle_stream_init(out handle, ptr)
+                : NativeLibraryTests.c11_fd_stream_init(out handle, ptr);
             if (ret < 0)
             {
-                throw new IOException($"Cannot handle file {intPtr}");
+                throw new IOException($"Cannot handle file {ptr}");
             }
         }
 
@@ -654,9 +655,7 @@ namespace Cxx11BindingsSharp.Tests
             using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
             {
                 // Use fs to read from the file
-                SafeFileHandle sfh = fs.SafeFileHandle;
-                IntPtr handle = sfh.DangerousGetHandle();
-                var h = new C11StreamHandle2(handle);
+                var h = new C11StreamHandle2(fs.SafeFileHandle);
                 var h2 = h.DangerousGetHandle();
                 var buffer = new byte[512];
                 var ret = NativeLibraryTests.test_c11_stream_read(h2, buffer, buffer.Length);
