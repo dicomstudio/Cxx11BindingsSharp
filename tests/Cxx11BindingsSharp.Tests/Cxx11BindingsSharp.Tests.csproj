@@ -30,6 +30,10 @@
         <ProjectReference Include="..\..\src\Cxx11BindingsSharp\Cxx11BindingsSharp.csproj"/>
     </ItemGroup>
 
+    <ItemGroup Condition="'$(TargetFramework)' == 'net48'">
+        <Reference Include="System.IO.Compression"/>
+    </ItemGroup>
+
     <!-- Dump version for clarity -->
     <Target Name="TestVersion" AfterTargets="build">
         <Message Text="RuntimeIdentifier=>$(RuntimeIdentifier)" Importance="high"/>
