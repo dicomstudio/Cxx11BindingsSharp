@@ -51,6 +51,19 @@ The only requirement is the following P/Invoke declaration in your C# code:
 internal static extern int acme_convert(C11StreamHandle src, C11StreamHandle dst);
 ```
 
+Pass `C11StreamHandle` directly to P/Invoke rather than converting it to
+`IntPtr`: the marshaller keeps the handle and callbacks alive until the call
+returns and rejects a disposed handle. The implicit `IntPtr` conversions on
+`C11StreamHandle` and `ManagedC11Stream` are no longer available; change
+existing `IntPtr` P/Invoke parameters to `C11StreamHandle`.
+
+If native code retains a pointer beyond the call, the owner must retain the
+managed handle and use `DangerousAddRef` before obtaining the pointer with
+`DangerousGetHandle`. Release that reference with `DangerousRelease` only after
+native code has stopped using the pointer and all callbacks have completed.
+Disposing a `ManagedC11Stream` also disposes its underlying stream, so it must
+remain undisposed while native code uses it.
+
 On the C11 side, export your function as:
 
 ```c

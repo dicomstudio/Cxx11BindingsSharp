@@ -21,16 +21,31 @@ namespace Cxx11BindingsSharp.Tests
         internal static extern int test_c11_stream_read(IntPtr handle, [Out] byte[] buffer, int length);
 
         [DllImport(LibraryName, CallingConvention = CallConv, ExactSpelling = true)]
+        internal static extern int test_c11_stream_read(C11StreamHandle handle, [Out] byte[] buffer, int length);
+
+        [DllImport(LibraryName, CallingConvention = CallConv, ExactSpelling = true)]
         internal static extern int test_c11_stream_write(IntPtr handle, [In] byte[] buffer, int length);
+
+        [DllImport(LibraryName, CallingConvention = CallConv, ExactSpelling = true)]
+        internal static extern int test_c11_stream_write(C11StreamHandle handle, [In] byte[] buffer, int length);
 
         [DllImport(LibraryName, CallingConvention = CallConv, ExactSpelling = true)]
         internal static extern long test_c11_stream_seek(IntPtr handle, long offset, SeekDirs seekDir);
 
         [DllImport(LibraryName, CallingConvention = CallConv, ExactSpelling = true)]
+        internal static extern long test_c11_stream_seek(C11StreamHandle handle, long offset, SeekDirs seekDir);
+
+        [DllImport(LibraryName, CallingConvention = CallConv, ExactSpelling = true)]
         internal static extern int test_c11_stream_flush(IntPtr handle);
 
         [DllImport(LibraryName, CallingConvention = CallConv, ExactSpelling = true)]
+        internal static extern int test_c11_stream_flush(C11StreamHandle handle);
+
+        [DllImport(LibraryName, CallingConvention = CallConv, ExactSpelling = true)]
         internal static extern long test_c11_stream_trunc(IntPtr handle, long newSize);
+
+        [DllImport(LibraryName, CallingConvention = CallConv, ExactSpelling = true)]
+        internal static extern long test_c11_stream_trunc(C11StreamHandle handle, long newSize);
 
         #endregion
 
