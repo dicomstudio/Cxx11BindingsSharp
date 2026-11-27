@@ -6,6 +6,9 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
+#if !NET6_0_OR_GREATER
+using System.Threading;
+#endif
 using Microsoft.Win32.SafeHandles;
 
 namespace Cxx11BindingsSharp
@@ -239,12 +242,18 @@ namespace Cxx11BindingsSharp
             var buffer = ArrayPool<byte>.Shared.Rent(newSize);
             return buffer;
 #else
-            if (_buffer.Length < newSize)
-            {
-                Array.Resize(ref _buffer, newSize);
-            }
+            // Lease the cached buffer exclusively, including during reentrant callbacks.
+            var buffer = Interlocked.Exchange(ref _buffer, null);
+            return buffer == null || buffer.Length < newSize ? new byte[newSize] : buffer;
+#endif
+        }
 
-            return _buffer;
+        private void ReturnBuffer(byte[] buffer)
+        {
+#if NET6_0_OR_GREATER
+            ArrayPool<byte>.Shared.Return(buffer);
+#else
+            Interlocked.CompareExchange(ref _buffer, buffer, null);
 #endif
         }
 
@@ -254,14 +263,12 @@ namespace Cxx11BindingsSharp
             if (count > 0 && outBuffer == IntPtr.Zero) return (int) ErrorCodes.C11_E_POINTER;
 #if NET6_0_OR_GREATER
             byte[]? buffer = null;
+#else
+            byte[] buffer = null;
 #endif
             try
             {
-#if NET6_0_OR_GREATER
                 buffer = EnsureBufferSize(count);
-#else
-                var buffer = EnsureBufferSize(count);
-#endif
 #if NET6_0_OR_GREATER
                 var ret = Read!(self, buffer, count);
 #else
@@ -276,12 +283,10 @@ namespace Cxx11BindingsSharp
             {
                 return NativeLibrary.ErrorCodeMap.ToErrorCode(ex);
             }
-#if NET6_0_OR_GREATER
             finally
             {
-                if (buffer != null) ArrayPool<byte>.Shared.Return(buffer);
+                if (buffer != null) ReturnBuffer(buffer);
             }
-#endif
         }
 
         private int BufWrite(IntPtr self, IntPtr inBuffer, int count)
@@ -290,14 +295,12 @@ namespace Cxx11BindingsSharp
             if (count > 0 && inBuffer == IntPtr.Zero) return (int) ErrorCodes.C11_E_POINTER;
 #if NET6_0_OR_GREATER
             byte[]? buffer = null;
+#else
+            byte[] buffer = null;
 #endif
             try
             {
-#if NET6_0_OR_GREATER
                 buffer = EnsureBufferSize(count);
-#else
-                var buffer = EnsureBufferSize(count);
-#endif
                 if (count > 0) Marshal.Copy(inBuffer, buffer, 0, count);
 #if NET6_0_OR_GREATER
                 var ret = Write!(self, buffer, count);
@@ -311,12 +314,10 @@ namespace Cxx11BindingsSharp
             {
                 return NativeLibrary.ErrorCodeMap.ToErrorCode(ex);
             }
-#if NET6_0_OR_GREATER
             finally
             {
-                if (buffer != null) ArrayPool<byte>.Shared.Return(buffer);
+                if (buffer != null) ReturnBuffer(buffer);
             }
-#endif
         }
 
         private long BufSeek(IntPtr self, long offset, int origin)

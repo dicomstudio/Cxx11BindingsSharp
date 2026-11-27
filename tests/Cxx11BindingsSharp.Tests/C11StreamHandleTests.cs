@@ -176,6 +176,46 @@ namespace Cxx11BindingsSharp.Tests
         }
 
         [Fact]
+        public void ReadCallback_PreservesBufferAcrossNestedWrite()
+        {
+            var nestedResult = 0;
+            using (var stream = new C11StreamHandle((self, buffer, count) =>
+                   {
+                       buffer[0] = 42;
+                       nestedResult = NativeLibraryTests.test_c11_stream_write(self, new byte[] { 99 }, 1);
+                       return 1;
+                   }, (self, buffer, count) => count, null, null, null))
+            {
+                var destination = new byte[1];
+                Assert.Equal(1, NativeLibraryTests.test_c11_stream_read(stream, destination, 1));
+                Assert.Equal(1, nestedResult);
+                Assert.Equal(42, destination[0]);
+            }
+        }
+
+        [Fact]
+        public void WriteCallback_PreservesBufferAcrossNestedRead()
+        {
+            var nestedResult = 0;
+            byte observed = 0;
+            using (var stream = new C11StreamHandle((self, buffer, count) =>
+                   {
+                       buffer[0] = 99;
+                       return 1;
+                   }, (self, buffer, count) =>
+                   {
+                       nestedResult = NativeLibraryTests.test_c11_stream_read(self, new byte[1], 1);
+                       observed = buffer[0];
+                       return 1;
+                   }, null, null, null))
+            {
+                Assert.Equal(1, NativeLibraryTests.test_c11_stream_write(stream, new byte[] { 42 }, 1));
+                Assert.Equal(1, nestedResult);
+                Assert.Equal(42, observed);
+            }
+        }
+
+        [Fact]
         public void ReadCallback_NegativeResultDoesNotModifyDestination()
         {
             using (var stream = new C11StreamHandle((self, buffer, count) =>
