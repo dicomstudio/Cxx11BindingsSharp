@@ -85,6 +85,15 @@ preserved by the C11 ABI.
 On .NET 6 and later, callback buffers are cleared before being returned to the
 shared array pool.
 
+## Publishing
+
+The tag-triggered workflow publishes to nuget.org using trusted publishing.
+Set the GitHub Actions secret `NUGET_USER` to the NuGet.org username of the
+trusted publishing policy owner. The policy must authorize the `dotnet.yml`
+workflow in the `dicomstudio/Cxx11BindingsSharp` repository. After a successful
+trusted publish, revoke the old NuGet API key and remove the `NUGET_API_KEY`
+GitHub secret.
+
 ## Running the C# tests on Windows
 
 Initialize the `native` submodule and install CMake and Visual Studio C++ build
