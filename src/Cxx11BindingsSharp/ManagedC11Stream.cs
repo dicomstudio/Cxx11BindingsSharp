@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Threading;
 
 namespace Cxx11BindingsSharp
 {
@@ -17,20 +18,39 @@ namespace Cxx11BindingsSharp
 
         // the managed stream handle
         private readonly C11StreamHandle _c11Stream;
+        private readonly bool _leaveOpen;
+        private int _disposed;
 
         /// <summary>
-        /// Buffered stream wrapper.
+        /// Wraps a stream and closes it when the wrapper is disposed.
         /// </summary>
-        /// <param name="stream"></param>
+        /// <param name="stream">The stream to wrap.</param>
         public ManagedC11Stream(
 #if NET6_0_OR_GREATER
             Stream? stream
 #else
             Stream stream
 #endif
+        ) : this(stream, false)
+        {
+        }
+
+        /// <summary>
+        /// Wraps a stream for managed and native access.
+        /// </summary>
+        /// <param name="stream">The stream to wrap.</param>
+        /// <param name="leaveOpen">Whether to leave the underlying stream open when the wrapper is disposed.</param>
+        public ManagedC11Stream(
+#if NET6_0_OR_GREATER
+            Stream? stream,
+#else
+            Stream stream,
+#endif
+            bool leaveOpen
         )
         {
             _innerStream = stream ?? throw new ArgumentNullException(nameof(stream));
+            _leaveOpen = leaveOpen;
             // FIXME: should buffering depend on the inner stream's buffering?
             _c11Stream = new C11StreamHandle(FRead, FWrite, FSeek, FFlush, FTrunc);
         }
@@ -153,17 +173,28 @@ namespace Cxx11BindingsSharp
 
         protected override void Dispose(bool disposing)
         {
-            if (disposing)
+            if (disposing && Interlocked.Exchange(ref _disposed, 1) == 0)
             {
-                // Dispose managed resources here
-                _innerStream.Dispose();
-                _c11Stream.Dispose();
+                try
+                {
+                    if (!_leaveOpen) _innerStream.Dispose();
+                }
+                finally
+                {
+                    _c11Stream.Dispose();
+                    base.Dispose(disposing);
+                }
+                return;
             }
 
-            // Dispose unmanaged resources here (if any)
             base.Dispose(disposing);
         }
 
+        private void ThrowIfDisposed()
+        {
+            if (Volatile.Read(ref _disposed) != 0)
+                throw new ObjectDisposedException(nameof(ManagedC11Stream));
+        }
 
         public static implicit operator C11StreamHandle(ManagedC11Stream managedC11Stream)
         {
@@ -172,38 +203,58 @@ namespace Cxx11BindingsSharp
 
         public override void Flush()
         {
+            ThrowIfDisposed();
             _innerStream.Flush();
         }
 
         public override int Read(byte[] buffer, int offset, int count)
         {
+            ThrowIfDisposed();
             return _innerStream.Read(buffer, offset, count);
         }
 
         public override long Seek(long offset, SeekOrigin origin)
         {
+            ThrowIfDisposed();
             return _innerStream.Seek(offset, origin);
         }
 
         public override void SetLength(long value)
         {
+            ThrowIfDisposed();
             _innerStream.SetLength(value);
         }
 
         public override void Write(byte[] buffer, int offset, int count)
         {
+            ThrowIfDisposed();
             _innerStream.Write(buffer, offset, count);
         }
 
-        public override bool CanRead => _innerStream.CanRead;
-        public override bool CanSeek => _innerStream.CanSeek;
-        public override bool CanWrite => _innerStream.CanWrite;
-        public override long Length => _innerStream.Length;
+        public override bool CanRead => Volatile.Read(ref _disposed) == 0 && _innerStream.CanRead;
+        public override bool CanSeek => Volatile.Read(ref _disposed) == 0 && _innerStream.CanSeek;
+        public override bool CanWrite => Volatile.Read(ref _disposed) == 0 && _innerStream.CanWrite;
+        public override long Length
+        {
+            get
+            {
+                ThrowIfDisposed();
+                return _innerStream.Length;
+            }
+        }
 
         public override long Position
         {
-            get => _innerStream.Position;
-            set => _innerStream.Position = value;
+            get
+            {
+                ThrowIfDisposed();
+                return _innerStream.Position;
+            }
+            set
+            {
+                ThrowIfDisposed();
+                _innerStream.Position = value;
+            }
         }
     }
 }
