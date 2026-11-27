@@ -33,8 +33,8 @@ In your C# library, you can now write something like:
 using Cxx11BindingsSharp;
 public void AcmeConvert(System.IO.Stream src, System.IO.Stream dst)
 {
-  var srcWrap = new ManagedC11Stream(src);
-  var dstWrap = new ManagedC11Stream(dst);
+  using var srcWrap = new ManagedC11Stream(src, leaveOpen: true);
+  using var dstWrap = new ManagedC11Stream(dst, leaveOpen: true);
   if (NativeService.acme_convert(srcWrap, dstWrap)<0)
   {
     throw new ArgumentException($"Cannot convert");
@@ -61,8 +61,9 @@ If native code retains a pointer beyond the call, the owner must retain the
 managed handle and use `DangerousAddRef` before obtaining the pointer with
 `DangerousGetHandle`. Release that reference with `DangerousRelease` only after
 native code has stopped using the pointer and all callbacks have completed.
-Disposing a `ManagedC11Stream` also disposes its underlying stream, so it must
-remain undisposed while native code uses it.
+Dispose each `ManagedC11Stream` after native code has stopped using it. By
+default, disposing the wrapper also disposes the underlying stream; pass
+`leaveOpen: true` to retain ownership of the underlying stream.
 
 On the C11 side, export your function as:
 
