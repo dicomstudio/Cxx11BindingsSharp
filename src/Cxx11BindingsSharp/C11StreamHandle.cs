@@ -3,6 +3,7 @@ using System;
 using System.Buffers;
 #endif
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 using Microsoft.Win32.SafeHandles;
@@ -46,6 +47,18 @@ namespace Cxx11BindingsSharp
 
         // IOException
         C11_E_IO,
+        C11_E_INVALIDOPERATION,
+        C11_E_UNAUTHORIZED,
+        C11_E_OUTOFMEMORY,
+        C11_E_TIMEOUT,
+        C11_E_CANCELED,
+        C11_E_FILENOTFOUND,
+        C11_E_DIRECTORYNOTFOUND,
+        C11_E_PATHTOOLONG,
+        C11_E_ENDOFSTREAM,
+        C11_E_ARGUMENTNULL,
+        C11_E_NOTIMPLEMENTED,
+        C11_E_UNMAPPED,
     };
 
 
@@ -93,9 +106,23 @@ namespace Cxx11BindingsSharp
                 ErrorToHResult.Add(ErrorCodes.C11_E_ARGUMENTOUTOFRANGE, new ArgumentOutOfRangeException().HResult);
                 ErrorToHResult.Add(ErrorCodes.C11_E_OBJECTDISPOSED, new ObjectDisposedException(string.Empty).HResult);
                 ErrorToHResult.Add(ErrorCodes.C11_E_IO, new IOException().HResult);
+                ErrorToHResult.Add(ErrorCodes.C11_E_INVALIDOPERATION, new InvalidOperationException().HResult);
+                ErrorToHResult.Add(ErrorCodes.C11_E_UNAUTHORIZED, new UnauthorizedAccessException().HResult);
+                ErrorToHResult.Add(ErrorCodes.C11_E_OUTOFMEMORY, new OutOfMemoryException().HResult);
+                ErrorToHResult.Add(ErrorCodes.C11_E_TIMEOUT, new TimeoutException().HResult);
+                ErrorToHResult.Add(ErrorCodes.C11_E_CANCELED, new OperationCanceledException().HResult);
+                ErrorToHResult.Add(ErrorCodes.C11_E_FILENOTFOUND, new FileNotFoundException().HResult);
+                ErrorToHResult.Add(ErrorCodes.C11_E_DIRECTORYNOTFOUND, new DirectoryNotFoundException().HResult);
+                ErrorToHResult.Add(ErrorCodes.C11_E_PATHTOOLONG, new PathTooLongException().HResult);
+                ErrorToHResult.Add(ErrorCodes.C11_E_ENDOFSTREAM, new EndOfStreamException().HResult);
+                ErrorToHResult.Add(ErrorCodes.C11_E_ARGUMENTNULL, new ArgumentNullException().HResult);
+                ErrorToHResult.Add(ErrorCodes.C11_E_NOTIMPLEMENTED, new NotImplementedException().HResult);
+                ErrorToHResult.Add(ErrorCodes.C11_E_UNMAPPED, unchecked((int) 0x80004005));
 
                 foreach (var kvp in ErrorToHResult)
-                    HResultToError.Add(kvp.Value, kvp.Key);
+                    // NullReferenceException and ArgumentNullException share an HRESULT.
+                    if (kvp.Key != ErrorCodes.C11_E_ARGUMENTNULL && kvp.Key != ErrorCodes.C11_E_UNMAPPED)
+                        HResultToError.Add(kvp.Value, kvp.Key);
             }
 
             public static int ToHResult(int errno)
@@ -108,9 +135,17 @@ namespace Cxx11BindingsSharp
 
             public static int ToErrorCode(int hresult)
             {
-                return HResultToError.TryGetValue(hresult, out var code)
-                    ? (int) code
-                    : throw new NotImplementedException("HResult " + hresult + " not implemented");
+                if (HResultToError.TryGetValue(hresult, out var code))
+                    return (int) code;
+                Trace.TraceError("C11 callback failed with unmapped HRESULT 0x{0:X8}", hresult);
+                return (int) ErrorCodes.C11_E_UNMAPPED;
+            }
+
+            public static int ToErrorCode(Exception exception)
+            {
+                if (exception is ArgumentNullException)
+                    return (int) ErrorCodes.C11_E_ARGUMENTNULL;
+                return ToErrorCode(exception.HResult);
             }
         }
 
@@ -118,6 +153,8 @@ namespace Cxx11BindingsSharp
         {
             if (err >= 0) return err;
             var errno = checked((int) err); // throws OverflowException if out of range
+            if (errno == (int) ErrorCodes.C11_E_ARGUMENTNULL) throw new ArgumentNullException();
+            if (errno == (int) ErrorCodes.C11_E_TIMEOUT) throw new TimeoutException();
             Marshal.ThrowExceptionForHR(ErrorCodeMap.ToHResult(errno));
             return 0; // Unreachable, but required for compilation
         }
@@ -125,6 +162,8 @@ namespace Cxx11BindingsSharp
         internal static int HandleExceptionOrReturnValue(int errno)
         {
             if (errno >= 0) return errno;
+            if (errno == (int) ErrorCodes.C11_E_ARGUMENTNULL) throw new ArgumentNullException();
+            if (errno == (int) ErrorCodes.C11_E_TIMEOUT) throw new TimeoutException();
             Marshal.ThrowExceptionForHR(ErrorCodeMap.ToHResult(errno));
             return 0; // Unreachable, but required for compilation
         }
@@ -160,13 +199,16 @@ namespace Cxx11BindingsSharp
             // To avoid using `unsafe`, we add an extra layer of indirection:
             NativeLibrary.BufReadDelegate bufReadFn = BufRead;
             NativeLibrary.BufWriteDelegate bufWriteFn = BufWrite;
+            NativeLibrary.SeekDelegate bufSeekFn = BufSeek;
+            NativeLibrary.FlushDelegate bufFlushFn = BufFlush;
+            NativeLibrary.TruncDelegate bufTruncFn = BufTrunc;
             var c11StreamHandle = new C11Stream
             {
                 read = readFn == null ? IntPtr.Zero : Marshal.GetFunctionPointerForDelegate(bufReadFn),
                 write = writeFn == null ? IntPtr.Zero : Marshal.GetFunctionPointerForDelegate(bufWriteFn),
-                seek = seekFn == null ? IntPtr.Zero : Marshal.GetFunctionPointerForDelegate(seekFn),
-                flush = flushFn == null ? IntPtr.Zero : Marshal.GetFunctionPointerForDelegate(flushFn),
-                trunc = truncFn == null ? IntPtr.Zero : Marshal.GetFunctionPointerForDelegate(truncFn)
+                seek = seekFn == null ? IntPtr.Zero : Marshal.GetFunctionPointerForDelegate(bufSeekFn),
+                flush = flushFn == null ? IntPtr.Zero : Marshal.GetFunctionPointerForDelegate(bufFlushFn),
+                trunc = truncFn == null ? IntPtr.Zero : Marshal.GetFunctionPointerForDelegate(bufTruncFn)
             };
             // Initialize unmanaged memory to hold the struct.
             handle = Marshal.AllocHGlobal(Marshal.SizeOf(c11StreamHandle));
@@ -180,10 +222,16 @@ namespace Cxx11BindingsSharp
             // keep internal delegates alive:
             BufReadDelegate = bufReadFn;
             BufWriteDelegate = bufWriteFn;
+            BufSeekDelegate = bufSeekFn;
+            BufFlushDelegate = bufFlushFn;
+            BufTruncDelegate = bufTruncFn;
         }
 
         private NativeLibrary.BufReadDelegate BufReadDelegate { get; set; }
         private NativeLibrary.BufWriteDelegate BufWriteDelegate { get; set; }
+        private NativeLibrary.SeekDelegate BufSeekDelegate { get; set; }
+        private NativeLibrary.FlushDelegate BufFlushDelegate { get; set; }
+        private NativeLibrary.TruncDelegate BufTruncDelegate { get; set; }
 
         private byte[] EnsureBufferSize(int newSize)
         {
@@ -202,39 +250,120 @@ namespace Cxx11BindingsSharp
 
         private int BufRead(IntPtr self, IntPtr outBuffer, int count)
         {
+            if (count < 0) return (int) ErrorCodes.C11_E_ARGUMENTOUTOFRANGE;
+            if (count > 0 && outBuffer == IntPtr.Zero) return (int) ErrorCodes.C11_E_POINTER;
+#if NET6_0_OR_GREATER
+            byte[]? buffer = null;
+#endif
             try
             {
+#if NET6_0_OR_GREATER
+                buffer = EnsureBufferSize(count);
+#else
                 var buffer = EnsureBufferSize(count);
+#endif
 #if NET6_0_OR_GREATER
                 var ret = Read!(self, buffer, count);
 #else
                 var ret = Read(self, buffer, count);
 #endif
-                Marshal.Copy(buffer, 0, outBuffer, count);
+                if (ret < 0) return ret;
+                if (ret > count) return (int) ErrorCodes.C11_E_IO;
+                if (ret > 0) Marshal.Copy(buffer, 0, outBuffer, ret);
                 return ret;
             }
             catch (Exception ex)
             {
-                return NativeLibrary.ErrorCodeMap.ToErrorCode(ex.HResult);
+                return NativeLibrary.ErrorCodeMap.ToErrorCode(ex);
             }
+#if NET6_0_OR_GREATER
+            finally
+            {
+                if (buffer != null) ArrayPool<byte>.Shared.Return(buffer);
+            }
+#endif
         }
 
         private int BufWrite(IntPtr self, IntPtr inBuffer, int count)
         {
+            if (count < 0) return (int) ErrorCodes.C11_E_ARGUMENTOUTOFRANGE;
+            if (count > 0 && inBuffer == IntPtr.Zero) return (int) ErrorCodes.C11_E_POINTER;
+#if NET6_0_OR_GREATER
+            byte[]? buffer = null;
+#endif
             try
             {
+#if NET6_0_OR_GREATER
+                buffer = EnsureBufferSize(count);
+#else
                 var buffer = EnsureBufferSize(count);
-                Marshal.Copy(inBuffer, buffer, 0, count);
+#endif
+                if (count > 0) Marshal.Copy(inBuffer, buffer, 0, count);
 #if NET6_0_OR_GREATER
                 var ret = Write!(self, buffer, count);
 #else
                 var ret = Write(self, buffer, count);
 #endif
+                if (ret > count) return (int) ErrorCodes.C11_E_IO;
                 return ret;
             }
             catch (Exception ex)
             {
-                return NativeLibrary.ErrorCodeMap.ToErrorCode(ex.HResult);
+                return NativeLibrary.ErrorCodeMap.ToErrorCode(ex);
+            }
+#if NET6_0_OR_GREATER
+            finally
+            {
+                if (buffer != null) ArrayPool<byte>.Shared.Return(buffer);
+            }
+#endif
+        }
+
+        private long BufSeek(IntPtr self, long offset, int origin)
+        {
+            try
+            {
+#if NET6_0_OR_GREATER
+                return Seek!(self, offset, origin);
+#else
+                return Seek(self, offset, origin);
+#endif
+            }
+            catch (Exception ex)
+            {
+                return NativeLibrary.ErrorCodeMap.ToErrorCode(ex);
+            }
+        }
+
+        private int BufFlush(IntPtr self)
+        {
+            try
+            {
+#if NET6_0_OR_GREATER
+                return Flush!(self);
+#else
+                return Flush(self);
+#endif
+            }
+            catch (Exception ex)
+            {
+                return NativeLibrary.ErrorCodeMap.ToErrorCode(ex);
+            }
+        }
+
+        private long BufTrunc(IntPtr self, long length)
+        {
+            try
+            {
+#if NET6_0_OR_GREATER
+                return Trunc!(self, length);
+#else
+                return Trunc(self, length);
+#endif
+            }
+            catch (Exception ex)
+            {
+                return NativeLibrary.ErrorCodeMap.ToErrorCode(ex);
             }
         }
 

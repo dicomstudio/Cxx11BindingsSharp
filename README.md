@@ -60,6 +60,35 @@ ACME_EXPORT int acme_convert(c11_stream* src, c11_stream* dst);
 At this point you can either re-use one of the existing `std::streambuf` wrappers, or directly use the `c11_stream`
 interface if you prefer to work with C-style APIs.
 
+The C11 callbacks and example P/Invoke use the C calling convention. Managed
+callback exceptions must not escape into native code: mapped HRESULTs are
+translated to C11 error codes; unmapped HRESULTs (including OS-specific I/O
+errors) are traced and reported as `C11_E_UNMAPPED`. C++ callers receive
+`cxx11::callback_exception` for the extended error codes and can inspect
+`code()` to distinguish them. Exception messages and OS error details are not
+preserved by the C11 ABI.
+
+## Running the C# tests on Windows
+
+Initialize the `native` submodule and install CMake and Visual Studio C++ build
+tools. The test project uses a Visual Studio CMake generator to build
+`Cxx11BindingsTests.dll` and copies it to the test output automatically. From
+the repository root, for example:
+
+```powershell
+git submodule update --init --recursive
+dotnet test .\tests\Cxx11BindingsSharp.Tests\Cxx11BindingsSharp.Tests.csproj --framework net8.0 -p:Platform=x64
+```
+
+Use `-p:Platform=x86` for an x86 build. AnyCPU uses the x64 native library.
+To reuse a separately built native test library instead, pass its absolute path
+as `-p:NativeTestLibraryPath=<path>`. The library must match the test process
+architecture. This override also works for the Linux test library.
+
+To collect C# coverage, add `--collect "Code Coverage"` to the test command.
+Visual Studio Enterprise can open the resulting `.coverage` file in
+`tests\Cxx11BindingsSharp.Tests\TestResults`.
+
 ## Implementation details
 
 The stream abstraction is simply defined with a set of five function pointers:
