@@ -286,6 +286,41 @@ namespace Cxx11BindingsSharp.Tests
             }
         }
 
+#if NET6_0_OR_GREATER
+        [Theory]
+        [InlineData(true, false)]
+        [InlineData(true, true)]
+        [InlineData(false, false)]
+        [InlineData(false, true)]
+        public void BufferCallbacks_ClearEntireRentedArray(bool isRead, bool throws)
+        {
+            byte[]? callbackBuffer = null;
+            using (var stream = new C11StreamHandle((self, buffer, count) =>
+                   {
+                       callbackBuffer = buffer;
+                       Array.Fill(buffer, (byte) 42);
+                       if (throws) throw new IOException();
+                       return count;
+                   }, (self, buffer, count) =>
+                   {
+                       callbackBuffer = buffer;
+                       Array.Fill(buffer, (byte) 42);
+                       if (throws) throw new IOException();
+                       return count;
+                   }, null, null, null))
+            {
+                var data = new byte[] { 1 };
+                var result = isRead
+                    ? NativeLibraryTests.test_c11_stream_read(stream, data, data.Length)
+                    : NativeLibraryTests.test_c11_stream_write(stream, data, data.Length);
+
+                Assert.Equal(throws ? (int) ErrorCodes.C11_E_IO : 1, result);
+                Assert.NotNull(callbackBuffer);
+                Assert.All(callbackBuffer, value => Assert.Equal(0, value));
+            }
+        }
+#endif
+
         [Fact]
         public void ReadAndWriteCallbacks_RejectImpossibleCounts()
         {

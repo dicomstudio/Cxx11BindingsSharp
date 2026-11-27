@@ -81,6 +81,8 @@ errors) are traced and reported as `C11_E_UNMAPPED`. C++ callers receive
 `cxx11::callback_exception` for the extended error codes and can inspect
 `code()` to distinguish them. Exception messages and OS error details are not
 preserved by the C11 ABI.
+On .NET 6 and later, callback buffers are cleared before being returned to the
+shared array pool.
 
 ## Running the C# tests on Windows
 

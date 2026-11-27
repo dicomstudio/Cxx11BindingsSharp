@@ -251,6 +251,7 @@ namespace Cxx11BindingsSharp
         private void ReturnBuffer(byte[] buffer)
         {
 #if NET6_0_OR_GREATER
+            Array.Clear(buffer, 0, buffer.Length);
             ArrayPool<byte>.Shared.Return(buffer);
 #else
             Interlocked.CompareExchange(ref _buffer, buffer, null);
