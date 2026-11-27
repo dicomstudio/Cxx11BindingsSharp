@@ -22,6 +22,10 @@
         <Nullable>enable</Nullable>
     </PropertyGroup>
 
+    <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('Windows')) or '$(NativeTestLibraryPath)' != ''">
+        <DisableFastUpToDateCheck>true</DisableFastUpToDateCheck>
+    </PropertyGroup>
+
     <ItemGroup>
         <ProjectReference Include="..\..\src\Cxx11BindingsSharp\Cxx11BindingsSharp.csproj"/>
     </ItemGroup>
@@ -32,15 +36,29 @@
         <Message Text="OS=>$(OS)" Importance="high"/>
     </Target>
 
-    <ItemGroup>
-        <!-- https://stackoverflow.com/questions/43412140/csproj-copy-files-depending-on-operating-system -->
-        <ProjectReference Include="..\..\native\Cxx11BindingsTests.vcxproj" Condition="$([MSBuild]::IsOSPlatform('Windows')) and Exists('..\..\native\Cxx11BindingsTests.vcxproj')">
-            <!-- https://stackoverflow.com/questions/5107694/how-do-i-add-a-reference-to-an-unmanaged-c-project-called-by-a-c-sharp-project -->
-            <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-            <OutputItemType>Content</OutputItemType>
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </ProjectReference>
-    </ItemGroup>
+    <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('Windows')) and '$(NativeTestLibraryPath)' == ''">
+        <NativeTestSourceDir>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)\..\..\native'))</NativeTestSourceDir>
+        <NativeTestPlatform>x64</NativeTestPlatform>
+        <NativeTestPlatform Condition="'$(Platform)' == 'x86'">Win32</NativeTestPlatform>
+    </PropertyGroup>
+
+    <Target Name="BuildNativeTestLibrary" BeforeTargets="CopyFilesToOutputDirectory"
+            Condition="$([MSBuild]::IsOSPlatform('Windows')) and '$(NativeTestLibraryPath)' == ''">
+        <PropertyGroup>
+            <NativeTestBuildDir>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)\$(IntermediateOutputPath)native'))</NativeTestBuildDir>
+        </PropertyGroup>
+        <Exec Command="cmake -S &quot;$(NativeTestSourceDir)&quot; -B &quot;$(NativeTestBuildDir)&quot; -A $(NativeTestPlatform) -DBUILD_TESTING=OFF" />
+        <Exec Command="cmake --build &quot;$(NativeTestBuildDir)&quot; --config &quot;$(Configuration)&quot; --target Cxx11Bindings_module" />
+        <PropertyGroup>
+            <NativeTestLibraryPath>$(NativeTestBuildDir)\lib\$(Configuration)\Cxx11BindingsTests.dll</NativeTestLibraryPath>
+        </PropertyGroup>
+    </Target>
+
+    <Target Name="CopyNativeTestLibrary" BeforeTargets="CopyFilesToOutputDirectory"
+            DependsOnTargets="BuildNativeTestLibrary" Condition="'$(NativeTestLibraryPath)' != '' or $([MSBuild]::IsOSPlatform('Windows'))">
+        <Error Condition="!Exists('$(NativeTestLibraryPath)')" Text="Native test library not found: $(NativeTestLibraryPath)" />
+        <Copy SourceFiles="$(NativeTestLibraryPath)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
+    </Target>
 
     <ItemGroup>
         <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0"/>
