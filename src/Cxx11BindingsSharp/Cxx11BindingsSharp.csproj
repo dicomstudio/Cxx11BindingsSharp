@@ -3,7 +3,7 @@
         <TargetFramework>net6.0</TargetFramework>
     </PropertyGroup>
 
-    <PropertyGroup Condition="'$(VisualStudioVersion)'=='17.0'">
+    <PropertyGroup Condition="'$(VisualStudioVersion)'!='16.0'">
         <TargetFrameworks>net48;net6.0;net8.0</TargetFrameworks>
     </PropertyGroup>
 
