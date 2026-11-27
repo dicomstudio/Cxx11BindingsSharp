@@ -6,6 +6,14 @@ namespace Cxx11BindingsSharp.Tests
     public class C11StreamHandleTests
     {
         [Fact]
+        public void TruncateReturns64BitLength()
+        {
+            const long length = (long) int.MaxValue + 123;
+            using (var stream = new C11StreamHandle(null, null, null, null, (self, size) => size))
+                Assert.Equal(length, NativeLibraryTests.test_c11_stream_trunc(stream, length));
+        }
+
+        [Fact]
         public void NullFunction_ShouldReturnNotSupportedException()
         {
             var c11Stream = new C11StreamHandle(null, null, null, null, null);
@@ -21,8 +29,8 @@ namespace Cxx11BindingsSharp.Tests
             Assert.Equal(hresult, NativeLibrary.ErrorCodeMap.ToHResult((int)ret2));
             ret = NativeLibraryTests.test_c11_stream_flush(c11Stream);
             Assert.Equal(hresult, NativeLibrary.ErrorCodeMap.ToHResult(ret));
-            ret = NativeLibraryTests.test_c11_stream_trunc(c11Stream, 4096);
-            Assert.Equal(hresult, NativeLibrary.ErrorCodeMap.ToHResult(ret));
+            ret2 = NativeLibraryTests.test_c11_stream_trunc(c11Stream, 4096);
+            Assert.Equal(hresult, NativeLibrary.ErrorCodeMap.ToHResult((int)ret2));
         }
     }
 }
