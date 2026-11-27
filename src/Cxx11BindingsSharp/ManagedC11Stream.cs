@@ -170,11 +170,6 @@ namespace Cxx11BindingsSharp
             return managedC11Stream._c11Stream;
         }
 
-        public static implicit operator IntPtr(ManagedC11Stream managedC11Stream)
-        {
-            return managedC11Stream._c11Stream;
-        }
-
         public override void Flush()
         {
             _innerStream.Flush();

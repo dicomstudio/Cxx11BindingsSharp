@@ -9,10 +9,10 @@ namespace Cxx11BindingsSharp.Tests
     public class C11StreamHandleTests
     {
         [DllImport("Cxx11BindingsTests", EntryPoint = "test_c11_stream_read", CallingConvention = CallingConvention.Cdecl)]
-        private static extern int ReadRaw(IntPtr stream, IntPtr buffer, int count);
+        private static extern int ReadRaw(C11StreamHandle stream, IntPtr buffer, int count);
 
         [DllImport("Cxx11BindingsTests", EntryPoint = "test_c11_stream_write", CallingConvention = CallingConvention.Cdecl)]
-        private static extern int WriteRaw(IntPtr stream, IntPtr buffer, int count);
+        private static extern int WriteRaw(C11StreamHandle stream, IntPtr buffer, int count);
 
         [Fact]
         public void ManagedStructMatchesNativePointerLayout()
@@ -151,6 +151,46 @@ namespace Cxx11BindingsSharp.Tests
             stream.Dispose();
             stream.Dispose();
             Assert.True(stream.IsClosed);
+        }
+
+        [Fact]
+        public void DisposedHandleCannotBePassedToNativeCode()
+        {
+            var stream = new C11StreamHandle(null, null, null, null, null);
+            stream.Dispose();
+            Assert.Throws<ObjectDisposedException>(() => NativeLibraryTests.test_c11_stream_flush(stream));
+        }
+
+        [Fact]
+        public void DisposedManagedStreamCannotBePassedToNativeCode()
+        {
+            var stream = new ManagedC11Stream(new MemoryStream());
+            stream.Dispose();
+            Assert.Throws<ObjectDisposedException>(() => NativeLibraryTests.test_c11_stream_flush(stream));
+        }
+
+        [Fact]
+        public void NativeCallKeepsHandleAliveWhenDisposedDuringCallback()
+        {
+            var holder = new C11StreamHandle[1];
+            var nestedResult = -1;
+            var flushes = 0;
+            holder[0] = new C11StreamHandle((self, buffer, count) =>
+            {
+                holder[0].Dispose();
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+                nestedResult = NativeLibraryTests.test_c11_stream_flush(self);
+                buffer[0] = 42;
+                return 1;
+            }, null, null, self => { flushes++; return 0; }, null);
+
+            var destination = new byte[1];
+            Assert.Equal(1, NativeLibraryTests.test_c11_stream_read(holder[0], destination, 1));
+            Assert.Equal(0, nestedResult);
+            Assert.Equal(1, flushes);
+            Assert.Equal(42, destination[0]);
+            Assert.True(holder[0].IsClosed);
         }
 
         [Fact]
