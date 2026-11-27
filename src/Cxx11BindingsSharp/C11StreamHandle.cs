@@ -140,7 +140,14 @@ namespace Cxx11BindingsSharp
             {
                 if (HResultToError.TryGetValue(hresult, out var code))
                     return (int) code;
-                Trace.TraceError("C11 callback failed with unmapped HRESULT 0x{0:X8}", hresult);
+                try
+                {
+                    Trace.TraceError("C11 callback failed with unmapped HRESULT 0x{0:X8}", hresult);
+                }
+                catch (Exception)
+                {
+                    // A trace listener must not throw across the unmanaged callback boundary.
+                }
                 return (int) ErrorCodes.C11_E_UNMAPPED;
             }
 

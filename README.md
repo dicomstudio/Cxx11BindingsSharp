@@ -77,7 +77,8 @@ interface if you prefer to work with C-style APIs.
 The C11 callbacks and example P/Invoke use the C calling convention. Managed
 callback exceptions must not escape into native code: mapped HRESULTs are
 translated to C11 error codes; unmapped HRESULTs (including OS-specific I/O
-errors) are traced and reported as `C11_E_UNMAPPED`. C++ callers receive
+errors) are traced on a best-effort basis and reported as `C11_E_UNMAPPED`,
+even if a trace listener throws. C++ callers receive
 `cxx11::callback_exception` for the extended error codes and can inspect
 `code()` to distinguish them. Exception messages and OS error details are not
 preserved by the C11 ABI.
