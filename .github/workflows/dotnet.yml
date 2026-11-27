@@ -39,13 +39,11 @@ jobs:
         with:
           dotnet-version: 6.0.x
       - name: Restore dependencies
-        run: dotnet restore -p:TargetFramework=net6.0
+        run: dotnet restore tests/Cxx11BindingsSharp.Tests/Cxx11BindingsSharp.Tests.csproj -p:TargetFramework=net6.0
       - name: Build
-        run: dotnet build -p:TargetFramework=net6.0 --no-restore
-      - name: Manual copy
-        run: cp build/lib/Cxx11BindingsTests.so tests/Cxx11BindingsSharp.Tests/bin/Debug/net6.0/
+        run: dotnet build tests/Cxx11BindingsSharp.Tests/Cxx11BindingsSharp.Tests.csproj -p:TargetFramework=net6.0 -p:NativeTestLibraryPath="${{ github.workspace }}/build/lib/Cxx11BindingsTests.so" --no-restore
       - name: Test
-        run: dotnet test --no-build --verbosity normal
+        run: dotnet test tests/Cxx11BindingsSharp.Tests/Cxx11BindingsSharp.Tests.csproj -p:TargetFramework=net6.0 --no-build --verbosity normal
 
   windows-amd64:
     runs-on: windows-latest
@@ -71,18 +69,11 @@ jobs:
         with:
           dotnet-version: 6.0.x
       - name: Restore dependencies
-        run: dotnet restore
-      - name: Remove native Cxx11BindingsTests.vcxproj
-        run: rm native/Cxx11BindingsTests.vcxproj
+        run: dotnet restore tests/Cxx11BindingsSharp.Tests/Cxx11BindingsSharp.Tests.csproj
       - name: Build
-        run: dotnet build --no-restore
-      - name: Manual copy
-        run: |
-          cp build/lib/Release/Cxx11BindingsTests.dll tests/Cxx11BindingsSharp.Tests/bin/Debug/net48/
-          cp build/lib/Release/Cxx11BindingsTests.dll tests/Cxx11BindingsSharp.Tests/bin/Debug/net6.0/
-          cp build/lib/Release/Cxx11BindingsTests.dll tests/Cxx11BindingsSharp.Tests/bin/Debug/net8.0/
+        run: dotnet build tests/Cxx11BindingsSharp.Tests/Cxx11BindingsSharp.Tests.csproj -p:NativeTestLibraryPath="${{ github.workspace }}\build\lib\Release\Cxx11BindingsTests.dll" --no-restore
       - name: Test
-        run: dotnet test --no-build --verbosity normal
+        run: dotnet test tests/Cxx11BindingsSharp.Tests/Cxx11BindingsSharp.Tests.csproj --no-build --verbosity normal
 
   fake-pack:
     if: ${{ !startsWith(github.ref, 'refs/tags/') }}
