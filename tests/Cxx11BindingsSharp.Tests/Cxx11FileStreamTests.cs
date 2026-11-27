@@ -133,7 +133,7 @@ namespace Cxx11BindingsSharp.Tests
         }
 
         [Fact]
-        public void SetLength_ShouldChangeFileSize()
+        public void SetLength_IsNotSupportedByNativeFilebuf()
         {
             const string filename = "SetLength_ShouldChangeFileSize.txt";
             try
